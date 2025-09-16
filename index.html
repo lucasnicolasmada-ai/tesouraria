@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Tesouraria - Grupo de Oação</title>
+  <title>Tesouraria - Grupo de Oração</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
   
@@ -77,7 +77,7 @@
     .btn-primary {
       background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
       color: white;
-      padding: 10px 20px;
+      padding: 12px 24px;
       border-radius: 12px;
       font-weight: 600;
       border: none;
@@ -95,7 +95,7 @@
     .btn-secondary {
       background: white;
       color: var(--primary-600);
-      padding: 10px 20px;
+      padding: 12px 24px;
       border-radius: 12px;
       font-weight: 600;
       border: 2px solid var(--primary-200);
@@ -111,7 +111,7 @@
     .btn-success {
       background: linear-gradient(135deg, var(--success-500), var(--success-600));
       color: white;
-      padding: 10px 20px;
+      padding: 12px 24px;
       border-radius: 12px;
       font-weight: 600;
       border: none;
@@ -142,9 +142,9 @@
     }
 
     .input-elegant {
-      padding: 10px 14px;
+      padding: 12px 16px;
       border: 2px solid var(--neutral-200);
-      border-radius: 10px;
+      border-radius: 12px;
       font-size: 14px;
       transition: all 0.3s ease;
       background: white;
@@ -157,7 +157,7 @@
     }
 
     .sidebar {
-      width: 250px;
+      width: 280px;
       background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
       box-shadow: 4px 0 24px rgba(0, 0, 0, 0.1);
       border-right: 1px solid var(--neutral-200);
@@ -165,16 +165,15 @@
 
     .nav-item {
       color: var(--neutral-700);
-      padding: 10px 18px;
-      border-radius: 10px;
-      margin: 4px 10px;
+      padding: 12px 20px;
+      border-radius: 12px;
+      margin: 4px 12px;
       cursor: pointer;
       transition: all 0.3s ease;
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       font-weight: 500;
-      font-size: 15px;
     }
 
     .nav-item:hover {
@@ -191,7 +190,7 @@
     .stat-card {
       background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
       color: white;
-      padding: 20px;
+      padding: 24px;
       border-radius: 16px;
       box-shadow: 0 8px 32px rgba(2, 132, 199, 0.3);
     }
@@ -218,14 +217,14 @@
     }
 
     .table-elegant th {
-      padding: 14px;
+      padding: 16px;
       font-weight: 600;
       color: var(--neutral-700);
       border-bottom: 1px solid var(--neutral-200);
     }
 
     .table-elegant td {
-      padding: 14px;
+      padding: 16px;
       border-bottom: 1px solid var(--neutral-100);
     }
 
@@ -244,12 +243,12 @@
 
     .toast {
       position: fixed;
-      bottom: 20px;
-      right: 20px;
+      bottom: 24px;
+      right: 24px;
       background: var(--neutral-900);
       color: white;
-      padding: 12px 20px;
-      border-radius: 10px;
+      padding: 16px 24px;
+      border-radius: 12px;
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
       z-index: 1000;
       animation: slideInRight 0.3s ease-out;
@@ -275,16 +274,16 @@
     }
 
     .logo-area {
-      padding: 20px 16px;
+      padding: 24px 20px;
       border-bottom: 1px solid var(--neutral-200);
-      margin-bottom: 16px;
+      margin-bottom: 20px;
       text-align: center;
     }
 
     .form-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 12px;
+      gap: 16px;
       align-items: end;
     }
 
@@ -342,14 +341,8 @@
   let currentYear = new Date().getFullYear();
 
   // ======= Transactions =======
-  async function saveTransaction({ type, description, value, date }){
+  async function saveTransaction({ type, description, value, month, year, date }){
     const col = collection(db,'transactions');
-    
-    // Extrai mês e ano da data
-    const d = new Date(date);
-    const month = d.getMonth() + 1;
-    const year = d.getFullYear();
-
     await addDoc(col, {
       type, description,
       value: Number(value),
@@ -481,7 +474,7 @@
     `).join('');
 
     lucide.createIcons();
-    
+
     $$('.input-elegant[data-field]').forEach(inp => {
       inp.addEventListener('change', async e => {
         const id = e.target.dataset.id;
@@ -509,7 +502,7 @@
     $('#totalRcc').innerText = totalRcc.toFixed(2);
     $('#totalCaixa').innerText = totalCaixa.toFixed(2);
   }
-  
+
   async function addMemberByName(name){
     if(!name || !name.trim()) return toast('❌ Nome inválido');
     await addDoc(collection(db,'members'), { name: name.trim().toUpperCase(), createdAt: serverTimestamp() });
@@ -605,7 +598,7 @@
 
   // ======= Utility Functions =======
   function formatDate(dateStr) {
-    const date = new Date(dateStr + 'T00:00:00');
+    const date = new Date(dateStr);
     return date.toLocaleDateString('pt-BR');
   }
 
@@ -617,7 +610,7 @@
     setTimeout(()=> {
       t.style.animation = 'slideInRight 0.3s ease-out reverse';
       setTimeout(()=> t.remove(), 300);
-    }, 3000);
+    }, 300);
   }
 
   // ======= UI Bindings =======
@@ -651,12 +644,16 @@
       const type = $('#txType').value;
       const desc = $('#txDesc').value.trim();
       const val = $('#txValue').value;
+      const mes = $('#txMonth').value;
+      const ano = $('#txYear').value;
       const data = $('#txDate').value;
       
-      if(!desc || !val || !data) return toast('❌ Preencha todos os campos');
+      if(!desc || !val) return toast('❌ Preencha descrição e valor');
       
-      await saveTransaction({ type, description: desc, value: val, date: data });
+      await saveTransaction({ type, description: desc, value: val, month: mes, year: ano, date: data });
       $('#txForm').reset();
+      $('#txMonth').value = currentMonth;
+      $('#txYear').value = currentYear;
       $('#txDate').value = new Date().toISOString().split('T')[0];
     });
 
@@ -690,10 +687,10 @@
 <div class="flex min-h-screen">
   <aside class="sidebar">
     <div class="logo-area">
-      <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-2">
-        <i data-lucide="church" class="w-6 h-6 text-white"></i>
+      <div class="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-3">
+        <i data-lucide="church" class="w-7 h-7 text-white"></i>
       </div>
-      <h1 class="text-lg font-bold text-gray-800">Tesouraria</h1>
+      <h1 class="text-xl font-bold text-gray-800">Tesouraria</h1>
       <p class="text-gray-600 text-sm">Grupo de Oração</p>
     </div>
 
@@ -713,29 +710,29 @@
     </nav>
   </aside>
 
-  <main class="flex-1 main-content p-6">
+  <main class="flex-1 main-content p-8">
     <div id="views">
 
-      <section id="tesouraria" class="hidden space-y-6">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-            <i data-lucide="wallet" class="w-5 h-5 text-white"></i>
+      <section id="tesouraria" class="hidden space-y-8">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+            <i data-lucide="wallet" class="w-6 h-6 text-white"></i>
           </div>
           <div>
-            <h1 class="text-2xl font-bold text-gray-900">Tesouraria</h1>
-            <p class="text-gray-600 text-sm">Gerencie as finanças do grupo</p>
+            <h1 class="text-3xl font-bold text-gray-900">Tesouraria</h1>
+            <p class="text-gray-600">Gerencie as finanças do grupo</p>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div class="stat-card stat-card-success">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-green-100 text-xs font-medium">Entradas</p>
-                <p class="text-2xl font-bold">R$ <span id="totalEntradas">0.00</span></p>
+                <p class="text-green-100 text-sm font-medium">Entradas</p>
+                <p class="text-3xl font-bold">R$ <span id="totalEntradas">0.00</span></p>
               </div>
-              <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                <i data-lucide="trending-up" class="w-5 h-5"></i>
+              <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                <i data-lucide="trending-up" class="w-6 h-6"></i>
               </div>
             </div>
           </div>
@@ -743,11 +740,11 @@
           <div class="stat-card stat-card-warning">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-yellow-100 text-xs font-medium">Saídas</p>
-                <p class="text-2xl font-bold">R$ <span id="totalSaidas">0.00</span></p>
+                <p class="text-yellow-100 text-sm font-medium">Saídas</p>
+                <p class="text-3xl font-bold">R$ <span id="totalSaidas">0.00</span></p>
               </div>
-              <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                <i data-lucide="trending-down" class="w-5 h-5"></i>
+              <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                <i data-lucide="trending-down" class="w-6 h-6"></i>
               </div>
             </div>
           </div>
@@ -755,25 +752,25 @@
           <div class="stat-card">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-blue-100 text-xs font-medium">Saldo</p>
-                <p class="text-2xl font-bold">R$ <span id="saldoAtual">0.00</span></p>
+                <p class="text-blue-100 text-sm font-medium">Saldo</p>
+                <p class="text-3xl font-bold">R$ <span id="saldoAtual">0.00</span></p>
               </div>
-              <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                <i data-lucide="piggy-bank" class="w-5 h-5"></i>
+              <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                <i data-lucide="piggy-bank" class="w-6 h-6"></i>
               </div>
             </div>
           </div>
         </div>
 
-        <div class="card-elegant p-5">
-          <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <i data-lucide="plus-circle" class="w-4 h-4 text-blue-600"></i>
+        <div class="card-elegant p-6">
+          <h2 class="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
+            <i data-lucide="plus-circle" class="w-5 h-5 text-blue-600"></i>
             Nova Transação
           </h2>
           
           <form id="txForm" class="form-grid">
             <div>
-              <label class="block text-xs font-medium text-gray-700 mb-1">Tipo</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
               <select id="txType" class="input-elegant w-full">
                 <option value="entrada">📈 Entrada</option>
                 <option value="saida">📉 Saída</option>
@@ -781,21 +778,31 @@
             </div>
             
             <div>
-              <label class="block text-xs font-medium text-gray-700 mb-1">Descrição</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Descrição</label>
               <input id="txDesc" placeholder="Digite a descrição..." class="input-elegant w-full" required />
             </div>
             
             <div>
-              <label class="block text-xs font-medium text-gray-700 mb-1">Valor</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Valor</label>
               <input id="txValue" type="number" placeholder="0,00" step="0.01" class="input-elegant w-full" required />
             </div>
             
-            <div class="col-span-1 md:col-span-2">
-              <label class="block text-xs font-medium text-gray-700 mb-1">Data</label>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Mês</label>
+              <input id="txMonth" type="number" min="1" max="12" class="input-elegant w-full" required />
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Ano</label>
+              <input id="txYear" type="number" min="2025" max="2030" class="input-elegant w-full" required />
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Data</label>
               <input id="txDate" type="date" class="input-elegant w-full" required />
             </div>
 
-            <div class="col-span-1 md:col-span-2">
+            <div class="md:col-span-2">
               <button type="submit" class="btn-success w-full">
                 <i data-lucide="save" class="w-4 h-4 mr-2"></i>
                 Salvar Transação
@@ -804,14 +811,14 @@
           </form>
         </div>
 
-        <div class="card-elegant p-5">
-          <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
-            <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <i data-lucide="history" class="w-4 h-4 text-blue-600"></i>
+        <div class="card-elegant p-6">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-semibold text-gray-900 flex items-center gap-2">
+              <i data-lucide="history" class="w-5 h-5 text-blue-600"></i>
               Histórico de Transações
             </h2>
             
-            <div class="flex gap-2">
+            <div class="flex gap-3">
               <div>
                 <label class="block text-xs font-medium text-gray-500 mb-1">Mês</label>
                 <input id="selectedMonth" type="number" min="1" max="12" class="input-elegant w-20" />
@@ -840,20 +847,20 @@
         </div>
       </section>
 
-      <section id="membros" class="hidden space-y-6">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 bg-gradient-to-r from-green-500 to-blue-600 rounded-xl flex items-center justify-center">
-            <i data-lucide="users" class="w-5 h-5 text-white"></i>
+      <section id="membros" class="hidden space-y-8">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 bg-gradient-to-r from-green-500 to-blue-600 rounded-xl flex items-center justify-center">
+            <i data-lucide="users" class="w-6 h-6 text-white"></i>
           </div>
           <div>
-            <h1 class="text-2xl font-bold text-gray-900">Membros</h1>
-            <p class="text-gray-600 text-sm">Gerencie membros e contribuições</p>
+            <h1 class="text-3xl font-bold text-gray-900">Membros</h1>
+            <p class="text-gray-600">Gerencie membros e contribuições</p>
           </div>
         </div>
 
-        <div class="card-elegant p-5">
-          <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <i data-lucide="user-plus" class="w-4 h-4 text-blue-600"></i>
+        <div class="card-elegant p-6">
+          <h2 class="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
+            <i data-lucide="user-plus" class="w-5 h-5 text-blue-600"></i>
             Adicionar Membro
           </h2>
           
@@ -866,15 +873,15 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div class="stat-card">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-blue-100 text-xs font-medium">Total de Membros</p>
-                <p class="text-2xl font-bold"><span id="membersCount">0</span></p>
+                <p class="text-blue-100 text-sm font-medium">Total de Membros</p>
+                <p class="text-3xl font-bold"><span id="membersCount">0</span></p>
               </div>
-              <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                <i data-lucide="users" class="w-5 h-5"></i>
+              <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                <i data-lucide="users" class="w-6 h-6"></i>
               </div>
             </div>
           </div>
@@ -882,11 +889,11 @@
           <div class="stat-card stat-card-success">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-green-100 text-xs font-medium">Total RCC</p>
-                <p class="text-2xl font-bold">R$ <span id="totalRcc">0.00</span></p>
+                <p class="text-green-100 text-sm font-medium">Total RCC</p>
+                <p class="text-3xl font-bold">R$ <span id="totalRcc">0.00</span></p>
               </div>
-              <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                <i data-lucide="heart" class="w-5 h-5"></i>
+              <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                <i data-lucide="heart" class="w-6 h-6"></i>
               </div>
             </div>
           </div>
@@ -894,24 +901,24 @@
           <div class="stat-card stat-card-warning">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-yellow-100 text-xs font-medium">Caixa Extra</p>
-                <p class="text-2xl font-bold">R$ <span id="totalCaixa">0.00</span></p>
+                <p class="text-yellow-100 text-sm font-medium">Caixa Extra</p>
+                <p class="text-3xl font-bold">R$ <span id="totalCaixa">0.00</span></p>
               </div>
-              <div class="w-10 h-10 bg-white/20 rounded-lg flex items-center justify-center">
-                <i data-lucide="gift" class="w-5 h-5"></i>
+              <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                <i data-lucide="gift" class="w-6 h-6"></i>
               </div>
             </div>
           </div>
         </div>
 
-        <div class="card-elegant p-5">
-          <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
-            <h2 class="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <i data-lucide="list" class="w-4 h-4 text-blue-600"></i>
+        <div class="card-elegant p-6">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-semibold text-gray-900 flex items-center gap-2">
+              <i data-lucide="list" class="w-5 h-5 text-blue-600"></i>
               Contribuições
             </h2>
             
-            <div class="flex gap-2">
+            <div class="flex gap-3">
               <div>
                 <label class="block text-xs font-medium text-gray-500 mb-1">Mês</label>
                 <input id="memberMonth" type="number" min="1" max="12" class="input-elegant w-20" />
@@ -939,18 +946,18 @@
         </div>
       </section>
 
-      <section id="contabilidade" class="hidden space-y-6">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl flex items-center justify-center">
-            <i data-lucide="bar-chart-3" class="w-5 h-5 text-white"></i>
+      <section id="contabilidade" class="hidden space-y-8">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl flex items-center justify-center">
+            <i data-lucide="bar-chart-3" class="w-6 h-6 text-white"></i>
           </div>
           <div>
-            <h1 class="text-2xl font-bold text-gray-900">Contabilidade</h1>
-            <p class="text-gray-600 text-sm">Relatório anual consolidado</p>
+            <h1 class="text-3xl font-bold text-gray-900">Contabilidade</h1>
+            <p class="text-gray-600">Relatório anual consolidado</p>
           </div>
         </div>
 
-        <div class="card-elegant p-5">
+        <div class="card-elegant p-6">
           <div class="flex items-center gap-4">
             <label class="text-sm font-medium text-gray-700">Ano do relatório:</label>
             <input id="reportYearInput" type="number" min="2025" max="2030" class="input-elegant w-24" />
@@ -960,30 +967,30 @@
 
         <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
           <div class="card-elegant p-4 text-center">
-            <div class="text-green-600 text-xl font-bold">R$ <span id="annualEntradas">0.00</span></div>
-            <div class="text-xs text-gray-600">Entradas</div>
+            <div class="text-green-600 text-2xl font-bold">R$ <span id="annualEntradas">0.00</span></div>
+            <div class="text-sm text-gray-600">Entradas</div>
           </div>
           <div class="card-elegant p-4 text-center">
-            <div class="text-blue-600 text-xl font-bold">R$ <span id="annualRcc">0.00</span></div>
-            <div class="text-xs text-gray-600">RCC</div>
+            <div class="text-blue-600 text-2xl font-bold">R$ <span id="annualRcc">0.00</span></div>
+            <div class="text-sm text-gray-600">RCC</div>
           </div>
           <div class="card-elegant p-4 text-center">
-            <div class="text-red-600 text-xl font-bold">R$ <span id="annualSaidas">0.00</span></div>
-            <div class="text-xs text-gray-600">Saídas</div>
+            <div class="text-red-600 text-2xl font-bold">R$ <span id="annualSaidas">0.00</span></div>
+            <div class="text-sm text-gray-600">Saídas</div>
           </div>
           <div class="card-elegant p-4 text-center">
-            <div class="text-yellow-600 text-xl font-bold">R$ <span id="annualCaixa">0.00</span></div>
-            <div class="text-xs text-gray-600">Caixa Extra</div>
+            <div class="text-yellow-600 text-2xl font-bold">R$ <span id="annualCaixa">0.00</span></div>
+            <div class="text-sm text-gray-600">Caixa Extra</div>
           </div>
           <div class="card-elegant p-4 text-center">
-            <div class="text-xl font-bold" id="annualSaldo">R$ 0.00</div>
-            <div class="text-xs text-gray-600">Resultado</div>
+            <div class="text-2xl font-bold" id="annualSaldo">R$ 0.00</div>
+            <div class="text-sm text-gray-600">Resultado</div>
           </div>
         </div>
 
-        <div class="card-elegant p-5">
-          <h2 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-            <i data-lucide="calendar" class="w-4 h-4 text-blue-600"></i>
+        <div class="card-elegant p-6">
+          <h2 class="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
+            <i data-lucide="calendar" class="w-5 h-5 text-blue-600"></i>
             Detalhamento Mensal
           </h2>
           
@@ -1017,6 +1024,8 @@
     const currentYear = today.getFullYear();
     const todayStr = today.toISOString().split('T')[0];
     
+    document.getElementById('txMonth').value = currentMonth;
+    document.getElementById('txYear').value = currentYear;
     document.getElementById('txDate').value = todayStr;
     document.getElementById('selectedMonth').value = currentMonth;
     document.getElementById('selectedYear').value = currentYear;
