@@ -1,151 +1,446 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <title>Tesouraria RCC</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Tesouraria - Grupo de Oração</title>
+
+  <!-- Tailwind CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    h1, h2 { color: #333; }
-    form { margin-bottom: 20px; }
-    input, select, button { margin: 5px; padding: 8px; }
-    ul { list-style: none; padding: 0; }
-    li { margin: 5px 0; padding: 8px; background: #f0f0f0; border-radius: 4px; }
-    .resumo span { font-weight: bold; }
+    body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
+    .sidebar { width: 260px; }
+    .card { background: white; border-radius: .5rem; box-shadow: 0 2px 10px rgba(0,0,0,0.04); padding: 1rem; }
+    .hidden-on-mobile { display: block; }
+    @media (max-width: 900px){ .sidebar{display:none} .hidden-on-mobile{display:none} }
   </style>
 </head>
-<body>
-  <h1>💰 Tesouraria RCC</h1>
+<body class="bg-gray-100 min-h-screen">
 
-  <form id="formTransacao">
-    <select id="tipo" required>
-      <option value="entrada">Entrada</option>
-      <option value="saida">Saída</option>
-    </select>
-    <input type="text" id="descricao" placeholder="Descrição" required>
-    <input type="number" id="valor" step="0.01" placeholder="Valor" required>
-    <input type="number" id="mes" min="1" max="12" placeholder="Mês" required>
-    <input type="number" id="ano" min="2025" max="2030" placeholder="Ano" required>
-    <input type="date" id="data" required>
-    <button type="submit">Salvar</button>
-  </form>
+<!-- ========== Firebase SDKs ========== -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import {
+    getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import {
+    getFirestore, collection, addDoc, getDocs, query, where, orderBy, deleteDoc, doc,
+    updateDoc, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-  <h2>Resumo</h2>
-  <div class="resumo">
-    <p>Entradas: R$ <span id="entradas">0.00</span></p>
-    <p>Saídas: R$ <span id="saidas">0.00</span></p>
-    <p>Saldo: R$ <span id="saldo">0.00</span></p>
-  </div>
+  // ====== Firebase Config ======
+  const firebaseConfig = {
+    apiKey: "AIzaSyAgVA62x3kIlkefPfrb6ccA7yLln1ZyM8E",
+    authDomain: "tesouraria-bcded.firebaseapp.com",
+    projectId: "tesouraria-bcded",
+    storageBucket: "tesouraria-bcded.firebasestorage.app",
+    messagingSenderId: "373337720444",
+    appId: "1:373337720444:web:ccca6b0917e5e2054f6bf9",
+    measurementId: "G-52WF5DX59X"
+  };
+  // ============================
 
-  <h2>Histórico</h2>
-  <ul id="listaTransacoes"></ul>
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
 
-  <script type="module">
-    // -------------------------------
-    // Importando Firebase
-    // -------------------------------
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import {
-      getFirestore, collection, addDoc, getDocs, query, where, orderBy, deleteDoc, doc
-    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  // PRESET MEMBERS
+  const PRESET_MEMBERS = [
+    'LUCAS NICOLAS','MILENA','TELMIRA','HENRIQUE','ROBERTA','NOEMI','VERA','MARLY','FLAVIO','ENIO','JESSICA','MARIA LIMA','MARIA DE JESUS','ELISANGELA','GERALDA','LUCAS OLIVEIRA'
+  ];
 
-    // -------------------------------
-    // Configuração do Firebase (a sua)
-    // -------------------------------
-    const firebaseConfig = {
-      apiKey: "AIzaSyAgVA62x3kIlkefPfrb6ccA7yLln1ZyM8E",
-      authDomain: "tesouraria-bcded.firebaseapp.com",
-      projectId: "tesouraria-bcded",
-      storageBucket: "tesouraria-bcded.firebasestorage.app",
-      messagingSenderId: "373337720444",
-      appId: "1:373337720444:web:ccca6b0917e5e2054f6bf9",
-      measurementId: "G-52WF5DX59X"
-    };
+  const $ = sel => document.querySelector(sel);
+  const $$ = sel => Array.from(document.querySelectorAll(sel));
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+  // ======= Autenticação Google =======
+  const provider = new GoogleAuthProvider();
 
-    // -------------------------------
-    // Funções de Tesouraria
-    // -------------------------------
-    async function salvarTransacao(tipo, descricao, valor, mes, ano, data) {
-      try {
-        await addDoc(collection(db, "transactions"), {
-          type: tipo,
-          descricao: descricao,
-          valor: parseFloat(valor),
-          mes: parseInt(mes),
-          ano: parseInt(ano),
-          data: data,
-          createdAt: new Date()
+  function showUserInfo(user){
+    if(!user) {
+      $('#userArea').innerHTML = `<button id="btnLogin" class="px-3 py-1 bg-blue-600 text-white rounded">Entrar com Google</button>`;
+      $('#btnLogin')?.addEventListener('click', ()=> signInWithPopup(auth, provider));
+    } else {
+      $('#userArea').innerHTML = `
+        <div class="text-sm">Olá, ${user.displayName.split(' ')[0]}</div>
+        <button id="btnLogout" class="text-xs text-red-600 mt-2">Sair</button>
+      `;
+      $('#btnLogout').addEventListener('click', ()=> signOut(auth));
+    }
+  }
+
+  onAuthStateChanged(auth, user => showUserInfo(user));
+
+  // ======= Firestore helpers =======
+  async function ensurePresetMembersExist(){
+    const col = collection(db,'members');
+    const snapshot = await getDocs(col);
+    const existing = new Set(snapshot.docs.map(d => d.data().name));
+    for(const name of PRESET_MEMBERS){
+      if(!existing.has(name)){
+        await addDoc(col, { name, createdAt: serverTimestamp() });
+      }
+    }
+  }
+
+  await ensurePresetMembersExist();
+
+  let currentMonth = new Date().getMonth() + 1;
+  let currentYear = new Date().getFullYear();
+
+  // ======= Transactions =======
+  async function saveTransaction({ type, description, value, month, year, date }){
+    const col = collection(db,'transactions');
+    await addDoc(col, {
+      type, description,
+      value: Number(value),
+      mes: Number(month), ano: Number(year),
+      data: date,
+      createdAt: serverTimestamp()
+    });
+    await loadTransactions(month, year);
+    toast('Transação registrada');
+  }
+
+  async function loadTransactions(month = currentMonth, year = currentYear){
+    currentMonth = Number(month); currentYear = Number(year);
+    $('#selectedMonth').value = currentMonth;
+    $('#selectedYear').value = currentYear;
+
+    const col = collection(db,'transactions');
+    const q = query(col, where('mes','==', Number(month)), where('ano','==', Number(year)), orderBy('data','desc'));
+    const snap = await getDocs(q);
+    const rows = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    const tbody = $('#transactionsList');
+    tbody.innerHTML = rows.map(r => `
+      <tr class="border-b">
+        <td class="p-2">${r.data}</td>
+        <td class="p-2">${r.type}</td>
+        <td class="p-2">${r.description}</td>
+        <td class="p-2 text-right">R$ ${Number(r.value).toFixed(2)}</td>
+        <td class="p-2 text-center"><button data-id="${r.id}" class="deleteTx text-red-500">Excluir</button></td>
+      </tr>
+    `).join('') || `<tr><td colspan="5" class="p-4 text-center text-gray-500">Nenhuma transação registrada</td></tr>`;
+
+    $$('.deleteTx').forEach(btn => btn.addEventListener('click', async e => {
+      const id = e.target.dataset.id;
+      if(!confirm('Excluir transação?')) return;
+      await deleteDoc(doc(db,'transactions', id));
+      toast('Transação excluída');
+      loadTransactions(month, year);
+    }));
+
+    const entradas = rows.filter(r=> r.type === 'entrada').reduce((s,r)=> s + Number(r.value||0), 0);
+    const saidas = rows.filter(r=> r.type === 'saida').reduce((s,r)=> s + Number(r.value||0), 0);
+    $('#totalEntradas').innerText = entradas.toFixed(2);
+    $('#totalSaidas').innerText = saidas.toFixed(2);
+    $('#saldoAtual').innerText = (entradas - saidas).toFixed(2);
+  }
+
+  // ======= Members & Contributions =======
+  async function loadMembersAndContributions(month = currentMonth, year = currentYear){
+    currentMonth = Number(month); currentYear = Number(year);
+    $('#memberMonth').value = currentMonth;
+    $('#memberYear').value = currentYear;
+
+    const memSnap = await getDocs(collection(db,'members'));
+    const members = memSnap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b)=> a.name.localeCompare(b.name));
+    $('#membersCount').innerText = members.length;
+
+    for(const m of members){
+      const q = query(collection(db,'contributions'), where('memberId','==', m.id), where('month','==', currentMonth), where('year','==', currentYear));
+      const snap = await getDocs(q);
+      if(snap.empty){
+        await addDoc(collection(db,'contributions'), {
+          memberId: m.id,
+          memberName: m.name,
+          month: currentMonth,
+          year: currentYear,
+          rcc: 0,
+          caixaExtra: 0,
+          createdAt: serverTimestamp()
         });
-        alert("Transação salva!");
-        carregarTransacoes(ano, mes);
-      } catch (e) {
-        console.error("Erro ao salvar transação: ", e);
       }
     }
 
-    async function carregarTransacoes(ano, mes) {
-      const q = query(
-        collection(db, "transactions"),
-        where("ano", "==", parseInt(ano)),
-        where("mes", "==", parseInt(mes)),
-        orderBy("data", "desc")
-      );
+    const q2 = query(collection(db,'contributions'), where('month','==', currentMonth), where('year','==', currentYear), orderBy('memberName'));
+    const snap2 = await getDocs(q2);
+    const contributions = snap2.docs.map(d => ({ id: d.id, ...d.data() }));
 
-      const querySnapshot = await getDocs(q);
-      let lista = "";
-      let totalEntradas = 0;
-      let totalSaidas = 0;
+    const table = $('#membersTableBody');
+    table.innerHTML = contributions.map(c => `
+      <tr class="border-b">
+        <td class="p-2">${c.memberName}</td>
+        <td class="p-2 text-center"><input data-id="${c.id}" data-field="rcc" type="number" min="0" step="0.01" value="${Number(c.rcc||0)}" class="w-28 input-num" /></td>
+        <td class="p-2 text-center"><input data-id="${c.id}" data-field="caixaExtra" type="number" min="0" step="0.01" value="${Number(c.caixaExtra||0)}" class="w-28 input-num" /></td>
+        <td class="p-2 text-center"><button data-memberid="${c.memberId}" class="delMember text-red-500">Excluir</button></td>
+      </tr>
+    `).join('');
 
-      querySnapshot.forEach((docItem) => {
-        const t = docItem.data();
-        if (t.type === "entrada") totalEntradas += t.valor;
-        if (t.type === "saida") totalSaidas += t.valor;
-
-        lista += `
-          <li>
-            <b>${t.type.toUpperCase()}</b> - ${t.descricao} - R$ ${t.valor.toFixed(2)} - ${t.data}
-            <button onclick="excluirTransacao('${docItem.id}', ${ano}, ${mes})">Excluir</button>
-          </li>
-        `;
+    $$('.input-num').forEach(inp => {
+      inp.addEventListener('change', async e => {
+        const id = e.target.dataset.id;
+        const field = e.target.dataset.field;
+        const value = Number(e.target.value || 0);
+        await updateDoc(doc(db,'contributions', id), { [field]: value });
+        toast('Contribuição atualizada');
+        loadMembersAndContributions(currentMonth, currentYear);
       });
-
-      document.getElementById("listaTransacoes").innerHTML = lista || "<li>Nenhuma transação</li>";
-      document.getElementById("entradas").innerText = totalEntradas.toFixed(2);
-      document.getElementById("saidas").innerText = totalSaidas.toFixed(2);
-      document.getElementById("saldo").innerText = (totalEntradas - totalSaidas).toFixed(2);
-    }
-
-    async function excluirTransacao(id, ano, mes) {
-      await deleteDoc(doc(db, "transactions", id));
-      alert("Transação excluída!");
-      carregarTransacoes(ano, mes);
-    }
-
-    // -------------------------------
-    // Eventos
-    // -------------------------------
-    window.addEventListener("DOMContentLoaded", () => {
-      document.getElementById("formTransacao").addEventListener("submit", (e) => {
-        e.preventDefault();
-        const tipo = document.getElementById("tipo").value;
-        const descricao = document.getElementById("descricao").value;
-        const valor = document.getElementById("valor").value;
-        const mes = document.getElementById("mes").value;
-        const ano = document.getElementById("ano").value;
-        const data = document.getElementById("data").value;
-
-        salvarTransacao(tipo, descricao, valor, mes, ano, data);
-      });
-
-      // Carregar automaticamente o mês atual
-      const hoje = new Date();
-      carregarTransacoes(hoje.getFullYear(), hoje.getMonth() + 1);
     });
 
-    // Expõe funções ao escopo global (para os botões "Excluir")
-    window.excluirTransacao = excluirTransacao;
-  </script>
+    $$('.delMember').forEach(btn => btn.addEventListener('click', async e => {
+      const memberId = e.target.dataset.memberid;
+      if(!confirm('Excluir membro e todas as contribuições dele?')) return;
+      await deleteDoc(doc(db,'members', memberId));
+      const q = query(collection(db,'contributions'), where('memberId','==', memberId));
+      const qSnap = await getDocs(q);
+      for(const d of qSnap.docs) await deleteDoc(doc(db,'contributions', d.id));
+      toast('Membro excluído');
+      loadMembersAndContributions(currentMonth, currentYear);
+    }));
+
+    const totalRcc = contributions.reduce((s,c)=> s + Number(c.rcc||0), 0);
+    const totalCaixa = contributions.reduce((s,c)=> s + Number(c.caixaExtra||0), 0);
+    $('#totalRcc').innerText = totalRcc.toFixed(2);
+    $('#totalCaixa').innerText = totalCaixa.toFixed(2);
+  }
+
+  async function addMemberByName(name){
+    if(!name || !name.trim()) return toast('Nome inválido');
+    await addDoc(collection(db,'members'), { name: name.trim(), createdAt: serverTimestamp() });
+    toast('Membro adicionado');
+    $('#newMemberName').value = '';
+    loadMembersAndContributions(currentMonth, currentYear);
+  }
+
+  // ======= Contabilidade anual =======
+  async function buildAnnualReport(year){
+    year = Number(year);
+    const txSnap = await getDocs(collection(db,'transactions'));
+    const txs = txSnap.docs.map(d => d.data()).filter(t => Number(new Date(t.data).getFullYear()) === year || Number(t.ano) === year);
+
+    const monthly = Array.from({length:12}, (_,i) => ({ month: i+1, entradas:0, saidas:0 }));
+    for(const t of txs){
+      const mIndex = Number(t.mes) - 1;
+      if(t.type === 'entrada') monthly[mIndex].entradas += Number(t.value||0);
+      else monthly[mIndex].saidas += Number(t.value||0);
+    }
+
+    const cSnap = await getDocs(collection(db,'contributions'));
+    const contributions = cSnap.docs.map(d => d.data()).filter(c => Number(c.year) === year);
+
+    const rccByMonth = Array(12).fill(0);
+    const caixaByMonth = Array(12).fill(0);
+    for(const c of contributions){
+      const idx = Number(c.month) - 1;
+      rccByMonth[idx] += Number(c.rcc||0);
+      caixaByMonth[idx] += Number(c.caixaExtra||0);
+    }
+
+    const report = monthly.map((m, i) => ({
+      month: m.month,
+      entradas: m.entradas,
+      rcc: rccByMonth[i],
+      saidas: m.saidas,
+      caixaExtra: caixaByMonth[i],
+      resultado: (m.entradas + rccByMonth[i]) - m.saidas
+    }));
+
+    const totals = {
+      totalEntradas: report.reduce((s,r)=> s + r.entradas, 0),
+      totalRcc: report.reduce((s,r)=> s + r.rcc, 0),
+      totalSaidas: report.reduce((s,r)=> s + r.saidas, 0),
+      totalCaixaExtra: report.reduce((s,r)=> s + r.caixaExtra, 0),
+      lucroLiquido: report.reduce((s,r)=> s + r.resultado, 0)
+    };
+
+    $('#reportYear').innerText = year;
+    const tbody = $('#reportTableBody');
+    tbody.innerHTML = report.map(r => `
+      <tr class="border-b">
+        <td class="p-2">${r.month}</td>
+        <td class="p-2 text-right">R$ ${r.entradas.toFixed(2)}</td>
+        <td class="p-2 text-right">R$ ${r.rcc.toFixed(2)}</td>
+        <td class="p-2 text-right">R$ ${r.saidas.toFixed(2)}</td>
+        <td class="p-2 text-right">R$ ${r.caixaExtra.toFixed(2)}</td>
+        <td class="p-2 text-right font-semibold">R$ ${r.resultado.toFixed(2)}</td>
+      </tr>
+    `).join('') || `<tr><td colspan="6" class="p-4 text-center text-gray-500">Nenhum dado encontrado para ${year}</td></tr>`;
+
+    $('#annualEntradas').innerText = totals.totalEntradas.toFixed(2);
+    $('#annualRcc').innerText = totals.totalRcc.toFixed(2);
+    $('#annualSaidas').innerText = totals.totalSaidas.toFixed(2);
+    $('#annualCaixa').innerText = totals.totalCaixaExtra.toFixed(2);
+    $('#annualSaldo').innerText = totals.lucroLiquido.toFixed(2);
+  }
+
+  // ======= UI Bindings =======
+  window.addEventListener('DOMContentLoaded', async () => {
+    $$('#navMenu button').forEach(btn => btn.addEventListener('click', e => {
+      const target = e.currentTarget.dataset.view;
+      $$('#views > section').forEach(s => s.classList.add('hidden'));
+      $(`#${target}`).classList.remove('hidden');
+    }));
+
+    $('#tesouraria').classList.remove('hidden');
+
+    loadTransactions(currentMonth, currentYear);
+    loadMembersAndContributions(currentMonth, currentYear);
+    buildAnnualReport(currentYear);
+
+    $('#txForm').addEventListener('submit', async e => {
+      e.preventDefault();
+      const type = $('#txType').value;
+      const desc = $('#txDesc').value.trim();
+      const val = $('#txValue').value;
+      const mes = $('#txMonth').value;
+      const ano = $('#txYear').value;
+      const data = $('#txDate').value;
+      if(!desc || !val) return toast('Preencha descrição e valor');
+      await saveTransaction({ type, description: desc, value: val, month: mes, year: ano, date: data });
+      $('#txDesc').value = ''; $('#txValue').value = '';
+      loadTransactions(mes, ano);
+    });
+
+    $('#selectedMonth').addEventListener('change', () => loadTransactions($('#selectedMonth').value, $('#selectedYear').value));
+    $('#selectedYear').addEventListener('change', () => loadTransactions($('#selectedMonth').value, $('#selectedYear').value));
+
+    $('#memberMonth').addEventListener('change', () => loadMembersAndContributions($('#memberMonth').value, $('#memberYear').value));
+    $('#memberYear').addEventListener('change', () => loadMembersAndContributions($('#memberMonth').value, $('#memberYear').value));
+
+    $('#btnAddMember').addEventListener('click', () => addMemberByName($('#newMemberName').value));
+
+    $('#reportYearInput').addEventListener('change', () => buildAnnualReport($('#reportYearInput').value));
+  });
+
+  function toast(msg){
+    const t = document.createElement('div');
+    t.innerText = msg;
+    t.className = 'fixed bottom-4 right-4 bg-black text-white px-4 py-2 rounded shadow';
+    document.body.appendChild(t);
+    setTimeout(()=> t.remove(), 3000);
+  }
+
+</script>
+
+<!-- ========== Sidebar ========== -->
+<div class="flex">
+  <aside class="sidebar bg-white shadow p-4 hidden-on-mobile">
+    <h2 class="text-xl font-bold mb-4">Menu</h2>
+    <div id="userArea" class="mb-4"></div>
+    <div id="navMenu" class="flex flex-col gap-2">
+      <button class="text-left p-2 hover:bg-gray-100 rounded" data-view="tesouraria">Tesouraria</button>
+      <button class="text-left p-2 hover:bg-gray-100 rounded" data-view="membros">Membros</button>
+      <button class="text-left p-2 hover:bg-gray-100 rounded" data-view="contabilidade">Contabilidade</button>
+    </div>
+  </aside>
+
+  <main class="flex-1 p-4">
+    <div id="views">
+
+      <!-- Tesouraria -->
+      <section id="tesouraria" class="hidden">
+        <h1 class="text-2xl font-bold mb-4">💰 Tesouraria</h1>
+        <form id="txForm" class="flex flex-col sm:flex-row gap-2 mb-4 items-center">
+          <select id="txType" class="p-2 border rounded">
+            <option value="entrada">Entrada</option>
+            <option value="saida">Saída</option>
+          </select>
+          <input id="txDesc" placeholder="Descrição" class="p-2 border rounded flex-1" required />
+          <input id="txValue" type="number" placeholder="Valor" step="0.01" class="p-2 border rounded w-28" required />
+          <input id="txMonth" type="number" min="1" max="12" placeholder="Mês" class="p-2 border rounded w-20" value="${currentMonth}" required />
+          <input id="txYear" type="number" min="2025" max="2030" placeholder="Ano" class="p-2 border rounded w-24" value="${currentYear}" required />
+          <input id="txDate" type="date" class="p-2 border rounded w-36" value="${new Date().toISOString().split('T')[0]}" required />
+          <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded">Salvar</button>
+        </form>
+
+        <div class="flex gap-4 mb-4">
+          <div class="card flex-1">
+            <h2 class="font-semibold">Resumo</h2>
+            <p>Entradas: R$ <span id="totalEntradas">0.00</span></p>
+            <p>Saídas: R$ <span id="totalSaidas">0.00</span></p>
+            <p>Saldo: R$ <span id="saldoAtual">0.00</span></p>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 class="font-semibold mb-2">Histórico</h2>
+          <div class="flex gap-2 mb-2">
+            <input id="selectedMonth" type="number" min="1" max="12" class="p-2 border rounded w-20" value="${currentMonth}" />
+            <input id="selectedYear" type="number" min="2025" max="2030" class="p-2 border rounded w-24" value="${currentYear}" />
+          </div>
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b">
+                <th class="p-2">Data</th>
+                <th class="p-2">Tipo</th>
+                <th class="p-2">Descrição</th>
+                <th class="p-2 text-right">Valor</th>
+                <th class="p-2 text-center">Ação</th>
+              </tr>
+            </thead>
+            <tbody id="transactionsList"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- Membros -->
+      <section id="membros" class="hidden">
+        <h1 class="text-2xl font-bold mb-4">👥 Membros</h1>
+        <div class="flex gap-2 mb-2 items-center">
+          <input id="newMemberName" placeholder="Novo membro" class="p-2 border rounded flex-1" />
+          <button id="btnAddMember" class="px-4 py-2 bg-blue-600 text-white rounded">Adicionar</button>
+        </div>
+        <div class="flex gap-2 mb-2">
+          <input id="memberMonth" type="number" min="1" max="12" class="p-2 border rounded w-20" value="${currentMonth}" />
+          <input id="memberYear" type="number" min="2025" max="2030" class="p-2 border rounded w-24" value="${currentYear}" />
+          <span>Total membros: <span id="membersCount">0</span></span>
+        </div>
+        <table class="w-full border-collapse">
+          <thead>
+            <tr class="border-b">
+              <th class="p-2">Nome</th>
+              <th class="p-2 text-center">RCC</th>
+              <th class="p-2 text-center">Caixa Extra</th>
+              <th class="p-2 text-center">Ação</th>
+            </tr>
+          </thead>
+          <tbody id="membersTableBody"></tbody>
+        </table>
+        <div class="mt-2">
+          Totais: RCC: R$ <span id="totalRcc">0.00</span> | Caixa Extra: R$ <span id="totalCaixa">0.00</span>
+        </div>
+      </section>
+
+      <!-- Contabilidade -->
+      <section id="contabilidade" class="hidden">
+        <h1 class="text-2xl font-bold mb-4">📊 Contabilidade Anual</h1>
+        <div class="flex gap-2 mb-2 items-center">
+          <input id="reportYearInput" type="number" min="2025" max="2030" class="p-2 border rounded w-24" value="${currentYear}" />
+          <span>Ano: <span id="reportYear">${currentYear}</span></span>
+        </div>
+        <table class="w-full border-collapse">
+          <thead>
+            <tr class="border-b">
+              <th class="p-2">Mês</th>
+              <th class="p-2 text-right">Entradas</th>
+              <th class="p-2 text-right">RCC</th>
+              <th class="p-2 text-right">Saídas</th>
+              <th class="p-2 text-right">Caixa Extra</th>
+              <th class="p-2 text-right">Resultado</th>
+            </tr>
+          </thead>
+          <tbody id="reportTableBody"></tbody>
+        </table>
+        <div class="mt-2 font-semibold">
+          Totais: Entradas: R$ <span id="annualEntradas">0.00</span> | RCC: R$ <span id="annualRcc">0.00</span> | Saídas: R$ <span id="annualSaidas">0.00</span> | Caixa Extra: R$ <span id="annualCaixa">0.00</span> | Lucro Líquido: R$ <span id="annualSaldo">0.00</span>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+
 </body>
 </html>
