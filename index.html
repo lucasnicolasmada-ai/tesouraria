@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Tesouraria RCC</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1, h2 { color: #333; }
+    form { margin-bottom: 20px; }
+    input, select, button { margin: 5px; padding: 8px; }
+    ul { list-style: none; padding: 0; }
+    li { margin: 5px 0; padding: 8px; background: #f0f0f0; border-radius: 4px; }
+    .resumo span { font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>💰 Tesouraria RCC</h1>
+
+  <form id="formTransacao">
+    <select id="tipo" required>
+      <option value="entrada">Entrada</option>
+      <option value="saida">Saída</option>
+    </select>
+    <input type="text" id="descricao" placeholder="Descrição" required>
+    <input type="number" id="valor" step="0.01" placeholder="Valor" required>
+    <input type="number" id="mes" min="1" max="12" placeholder="Mês" required>
+    <input type="number" id="ano" min="2025" max="2030" placeholder="Ano" required>
+    <input type="date" id="data" required>
+    <button type="submit">Salvar</button>
+  </form>
+
+  <h2>Resumo</h2>
+  <div class="resumo">
+    <p>Entradas: R$ <span id="entradas">0.00</span></p>
+    <p>Saídas: R$ <span id="saidas">0.00</span></p>
+    <p>Saldo: R$ <span id="saldo">0.00</span></p>
+  </div>
+
+  <h2>Histórico</h2>
+  <ul id="listaTransacoes"></ul>
+
+  <script type="module">
+    // -------------------------------
+    // Importando Firebase
+    // -------------------------------
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getFirestore, collection, addDoc, getDocs, query, where, orderBy, deleteDoc, doc
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    // -------------------------------
+    // Configuração do Firebase (a sua)
+    // -------------------------------
+    const firebaseConfig = {
+      apiKey: "AIzaSyAgVA62x3kIlkefPfrb6ccA7yLln1ZyM8E",
+      authDomain: "tesouraria-bcded.firebaseapp.com",
+      projectId: "tesouraria-bcded",
+      storageBucket: "tesouraria-bcded.firebasestorage.app",
+      messagingSenderId: "373337720444",
+      appId: "1:373337720444:web:ccca6b0917e5e2054f6bf9",
+      measurementId: "G-52WF5DX59X"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // -------------------------------
+    // Funções de Tesouraria
+    // -------------------------------
+    async function salvarTransacao(tipo, descricao, valor, mes, ano, data) {
+      try {
+        await addDoc(collection(db, "transactions"), {
+          type: tipo,
+          descricao: descricao,
+          valor: parseFloat(valor),
+          mes: parseInt(mes),
+          ano: parseInt(ano),
+          data: data,
+          createdAt: new Date()
+        });
+        alert("Transação salva!");
+        carregarTransacoes(ano, mes);
+      } catch (e) {
+        console.error("Erro ao salvar transação: ", e);
+      }
+    }
+
+    async function carregarTransacoes(ano, mes) {
+      const q = query(
+        collection(db, "transactions"),
+        where("ano", "==", parseInt(ano)),
+        where("mes", "==", parseInt(mes)),
+        orderBy("data", "desc")
+      );
+
+      const querySnapshot = await getDocs(q);
+      let lista = "";
+      let totalEntradas = 0;
+      let totalSaidas = 0;
+
+      querySnapshot.forEach((docItem) => {
+        const t = docItem.data();
+        if (t.type === "entrada") totalEntradas += t.valor;
+        if (t.type === "saida") totalSaidas += t.valor;
+
+        lista += `
+          <li>
+            <b>${t.type.toUpperCase()}</b> - ${t.descricao} - R$ ${t.valor.toFixed(2)} - ${t.data}
+            <button onclick="excluirTransacao('${docItem.id}', ${ano}, ${mes})">Excluir</button>
+          </li>
+        `;
+      });
+
+      document.getElementById("listaTransacoes").innerHTML = lista || "<li>Nenhuma transação</li>";
+      document.getElementById("entradas").innerText = totalEntradas.toFixed(2);
+      document.getElementById("saidas").innerText = totalSaidas.toFixed(2);
+      document.getElementById("saldo").innerText = (totalEntradas - totalSaidas).toFixed(2);
+    }
+
+    async function excluirTransacao(id, ano, mes) {
+      await deleteDoc(doc(db, "transactions", id));
+      alert("Transação excluída!");
+      carregarTransacoes(ano, mes);
+    }
+
+    // -------------------------------
+    // Eventos
+    // -------------------------------
+    window.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("formTransacao").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const tipo = document.getElementById("tipo").value;
+        const descricao = document.getElementById("descricao").value;
+        const valor = document.getElementById("valor").value;
+        const mes = document.getElementById("mes").value;
+        const ano = document.getElementById("ano").value;
+        const data = document.getElementById("data").value;
+
+        salvarTransacao(tipo, descricao, valor, mes, ano, data);
+      });
+
+      // Carregar automaticamente o mês atual
+      const hoje = new Date();
+      carregarTransacoes(hoje.getFullYear(), hoje.getMonth() + 1);
+    });
+
+    // Expõe funções ao escopo global (para os botões "Excluir")
+    window.excluirTransacao = excluirTransacao;
+  </script>
+</body>
+</html>
