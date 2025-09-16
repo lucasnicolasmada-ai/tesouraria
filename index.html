@@ -337,8 +337,6 @@
     }
   }
 
-  await ensurePresetMembersExist();
-
   let currentMonth = new Date().getMonth() + 1;
   let currentYear = new Date().getFullYear();
 
@@ -507,6 +505,14 @@
     $('#totalRcc').innerText = totalRcc.toFixed(2);
     $('#totalCaixa').innerText = totalCaixa.toFixed(2);
   }
+  
+  async function addMemberByName(name){
+    if(!name || !name.trim()) return toast('❌ Nome inválido');
+    await addDoc(collection(db,'members'), { name: name.trim().toUpperCase(), createdAt: serverTimestamp() });
+    toast('👥 Membro adicionado com sucesso!');
+    $('#newMemberName').value = '';
+    loadMembersAndContributions(currentMonth, currentYear);
+  }
 
   // ======= Contabilidade anual =======
   async function buildAnnualReport(year){
@@ -607,11 +613,14 @@
     setTimeout(()=> {
       t.style.animation = 'slideInRight 0.3s ease-out reverse';
       setTimeout(()=> t.remove(), 300);
-    }, 3000); // Increased duration to 3 seconds for better visibility
+    }, 300);
   }
 
   // ======= UI Bindings =======
   window.addEventListener('DOMContentLoaded', async () => {
+    // CORREÇÃO: Mova a chamada para a função async
+    await ensurePresetMembersExist();
+
     // Navigation
     $$('.nav-item').forEach(btn => btn.addEventListener('click', e => {
       const target = e.currentTarget.dataset.view;
