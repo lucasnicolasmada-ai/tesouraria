@@ -205,6 +205,8 @@
       box-shadow: 0 8px 32px rgba(234, 179, 8, 0.3);
     }
 
+    .stat-card-warning .text-yellow-100 { color: #FFF8E1; }
+
     .table-elegant {
       background: white;
       border-radius: 16px;
@@ -452,9 +454,9 @@
         <td class="p-4">
           <div class="flex items-center gap-3">
             <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
-              ${c.memberName.charAt(0)}
+              ${String((c.memberName||' ')[0] || '').toUpperCase()}
             </div>
-            <div class="font-medium text-gray-900">${c.memberName}</div>
+            <div class="font-medium text-gray-900">${c.memberName || 'Sem Nome'}</div>
           </div>
         </td>
         <td class="p-4 text-center">
@@ -515,11 +517,19 @@
   async function buildAnnualReport(year){
     year = Number(year);
     const txSnap = await getDocs(collection(db,'transactions'));
-    const txs = txSnap.docs.map(d => d.data()).filter(t => Number(new Date(t.data).getFullYear()) === year || Number(t.ano) === year);
+    // normalize transactions to ensure data fields are usable
+    const txs = txSnap.docs.map(d => d.data()).map(t => ({
+      ...t,
+      mes: Number(t.mes || t.month || new Date(t.data).getMonth()+1),
+      ano: Number(t.ano || t.year || (t.data && (t.data.toDate ? t.data.toDate().getFullYear() : new Date(t.data).getFullYear()))),
+      value: Number(t.value||0),
+      data: t.data
+    })).filter(t => Number(t.ano) === year);
 
     const monthly = Array.from({length:12}, (_,i) => ({ month: i+1, entradas:0, saidas:0 }));
     for(const t of txs){
       const mIndex = Number(t.mes) - 1;
+      if(mIndex < 0 || mIndex > 11) continue;
       if(t.type === 'entrada') monthly[mIndex].entradas += Number(t.value||0);
       else monthly[mIndex].saidas += Number(t.value||0);
     }
@@ -531,6 +541,7 @@
     const caixaByMonth = Array(12).fill(0);
     for(const c of contributions){
       const idx = Number(c.month) - 1;
+      if(idx < 0 || idx > 11) continue;
       rccByMonth[idx] += Number(c.rcc||0);
       caixaByMonth[idx] += Number(c.caixaExtra||0);
     }
@@ -598,8 +609,14 @@
 
   // ======= Utility Functions =======
   function formatDate(dateStr) {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('pt-BR');
+    if (!dateStr) return '';
+    // Support Firestore Timestamp and ISO/string
+    try {
+      const date = dateStr.toDate ? dateStr.toDate() : new Date(dateStr);
+      return date.toLocaleDateString('pt-BR');
+    } catch (e) {
+      return String(dateStr);
+    }
   }
 
   function toast(msg){
@@ -1039,4 +1056,3 @@
 
 </body>
 </html>
-
