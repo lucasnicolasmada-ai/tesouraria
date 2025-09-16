@@ -350,7 +350,7 @@
       data: date,
       createdAt: serverTimestamp()
     });
-    await loadTransactions(month, year);
+    await loadTransactions(month, year); // LINHA CORRIGIDA
     toast('💰 Transação registrada com sucesso!');
   }
 
@@ -651,6 +651,8 @@
       if(!desc || !val) return toast('❌ Preencha descrição e valor');
       
       await saveTransaction({ type, description: desc, value: val, month: mes, year: ano, date: data });
+      // CORREÇÃO: Chamada para recarregar a lista de transações após salvar
+      loadTransactions(mes, ano); 
       $('#txForm').reset();
       $('#txMonth').value = currentMonth;
       $('#txYear').value = currentYear;
@@ -677,7 +679,7 @@
 
 <div class="mobile-header">
   <div class="flex items-center gap-3">
-    <div class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+    <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
       <i data-lucide="church" class="w-5 h-5"></i>
     </div>
     <h1 class="text-lg font-bold">Tesouraria - Grupo de Oração</h1>
