@@ -350,7 +350,7 @@
       data: date,
       createdAt: serverTimestamp()
     });
-    await loadTransactions(month, year); // LINHA CORRIGIDA
+    await loadTransactions(month, year);
     toast('💰 Transação registrada com sucesso!');
   }
 
