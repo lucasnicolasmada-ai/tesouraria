@@ -4,26 +4,300 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Tesouraria - Grupo de Oração</title>
-
-  <!-- Tailwind CDN -->
+  
   <script src="https://cdn.tailwindcss.com"></script>
+  
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 
   <style>
-    body { font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; }
-    .sidebar { width: 260px; }
-    .card { background: white; border-radius: .5rem; box-shadow: 0 2px 10px rgba(0,0,0,0.04); padding: 1rem; }
-    .hidden-on-mobile { display: block; }
-    @media (max-width: 900px){ .sidebar{display:none} .hidden-on-mobile{display:none} }
+    :root {
+      --primary-50: #f0f9ff;
+      --primary-100: #e0f2fe;
+      --primary-200: #bae6fd;
+      --primary-500: #0ea5e9;
+      --primary-600: #0284c7;
+      --primary-700: #0369a1;
+      --primary-900: #0c4a6e;
+      
+      --secondary-50: #fefce8;
+      --secondary-100: #fef3c7;
+      --secondary-500: #eab308;
+      --secondary-600: #ca8a04;
+      
+      --success-50: #f0fdf4;
+      --success-500: #22c55e;
+      --success-600: #16a34a;
+      
+      --danger-50: #fef2f2;
+      --danger-500: #ef4444;
+      --danger-600: #dc2626;
+      
+      --neutral-50: #f8fafc;
+      --neutral-100: #f1f5f9;
+      --neutral-200: #e2e8f0;
+      --neutral-300: #cbd5e1;
+      --neutral-400: #94a3b8;
+      --neutral-500: #64748b;
+      --neutral-600: #475569;
+      --neutral-700: #334155;
+      --neutral-800: #1e293b;
+      --neutral-900: #0f172a;
+    }
+
+    * {
+      font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, var(--primary-50) 0%, var(--neutral-100) 100%);
+      min-height: 100vh;
+    }
+
+    .glass-effect {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .card-elegant {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      border: 1px solid var(--neutral-200);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .card-elegant:hover {
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      transform: translateY(-2px);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
+      color: white;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 14px 0 rgba(2, 132, 199, 0.3);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, var(--primary-700), var(--primary-600));
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px 0 rgba(2, 132, 199, 0.4);
+    }
+
+    .btn-secondary {
+      background: white;
+      color: var(--primary-600);
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-weight: 600;
+      border: 2px solid var(--primary-200);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .btn-secondary:hover {
+      background: var(--primary-50);
+      border-color: var(--primary-300);
+    }
+
+    .btn-success {
+      background: linear-gradient(135deg, var(--success-500), var(--success-600));
+      color: white;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 14px 0 rgba(34, 197, 94, 0.3);
+    }
+
+    .btn-success:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px 0 rgba(34, 197, 94, 0.4);
+    }
+
+    .btn-danger {
+      color: var(--danger-500);
+      background: var(--danger-50);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 500;
+      border: 1px solid var(--danger-200);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .btn-danger:hover {
+      background: var(--danger-500);
+      color: white;
+    }
+
+    .input-elegant {
+      padding: 12px 16px;
+      border: 2px solid var(--neutral-200);
+      border-radius: 12px;
+      font-size: 14px;
+      transition: all 0.3s ease;
+      background: white;
+    }
+
+    .input-elegant:focus {
+      outline: none;
+      border-color: var(--primary-500);
+      box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.1);
+    }
+
+    .sidebar {
+      width: 280px;
+      background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+      box-shadow: 4px 0 24px rgba(0, 0, 0, 0.1);
+      border-right: 1px solid var(--neutral-200);
+    }
+
+    .nav-item {
+      color: var(--neutral-700);
+      padding: 12px 20px;
+      border-radius: 12px;
+      margin: 4px 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 500;
+    }
+
+    .nav-item:hover {
+      background: var(--primary-50);
+      color: var(--primary-700);
+      transform: translateX(4px);
+    }
+
+    .nav-item.active {
+      background: var(--primary-600);
+      color: white;
+    }
+
+    .stat-card {
+      background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
+      color: white;
+      padding: 24px;
+      border-radius: 16px;
+      box-shadow: 0 8px 32px rgba(2, 132, 199, 0.3);
+    }
+
+    .stat-card-success {
+      background: linear-gradient(135deg, var(--success-500), var(--success-600));
+      box-shadow: 0 8px 32px rgba(34, 197, 94, 0.3);
+    }
+
+    .stat-card-warning {
+      background: linear-gradient(135deg, var(--secondary-500), var(--secondary-600));
+      box-shadow: 0 8px 32px rgba(234, 179, 8, 0.3);
+    }
+
+    .table-elegant {
+      background: white;
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+
+    .table-elegant thead {
+      background: var(--neutral-50);
+    }
+
+    .table-elegant th {
+      padding: 16px;
+      font-weight: 600;
+      color: var(--neutral-700);
+      border-bottom: 1px solid var(--neutral-200);
+    }
+
+    .table-elegant td {
+      padding: 16px;
+      border-bottom: 1px solid var(--neutral-100);
+    }
+
+    .table-elegant tbody tr:hover {
+      background: var(--neutral-50);
+    }
+
+    .fade-in {
+      animation: fadeIn 0.6s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--neutral-900);
+      color: white;
+      padding: 16px 24px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      z-index: 1000;
+      animation: slideInRight 0.3s ease-out;
+    }
+
+    @keyframes slideInRight {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    .mobile-header {
+      display: none;
+      background: var(--primary-600);
+      color: white;
+      padding: 16px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    @media (max-width: 900px) {
+      .sidebar { display: none; }
+      .mobile-header { display: block; }
+      .main-content { padding: 16px; }
+    }
+
+    .logo-area {
+      padding: 24px 20px;
+      border-bottom: 1px solid var(--neutral-200);
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      align-items: end;
+    }
+
+    @media (max-width: 768px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body>
 
-<!-- ========== Firebase SDKs ========== -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import {
-    getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged
-  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
   import {
     getFirestore, collection, addDoc, getDocs, query, where, orderBy, deleteDoc, doc,
     updateDoc, serverTimestamp
@@ -39,10 +313,8 @@
     appId: "1:373337720444:web:ccca6b0917e5e2054f6bf9",
     measurementId: "G-52WF5DX59X"
   };
-  // ============================
 
   const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
   const db = getFirestore(app);
 
   // PRESET MEMBERS
@@ -52,24 +324,6 @@
 
   const $ = sel => document.querySelector(sel);
   const $$ = sel => Array.from(document.querySelectorAll(sel));
-
-  // ======= Autenticação Google =======
-  const provider = new GoogleAuthProvider();
-
-  function showUserInfo(user){
-    if(!user) {
-      $('#userArea').innerHTML = `<button id="btnLogin" class="px-3 py-1 bg-blue-600 text-white rounded">Entrar com Google</button>`;
-      $('#btnLogin')?.addEventListener('click', ()=> signInWithPopup(auth, provider));
-    } else {
-      $('#userArea').innerHTML = `
-        <div class="text-sm">Olá, ${user.displayName.split(' ')[0]}</div>
-        <button id="btnLogout" class="text-xs text-red-600 mt-2">Sair</button>
-      `;
-      $('#btnLogout').addEventListener('click', ()=> signOut(auth));
-    }
-  }
-
-  onAuthStateChanged(auth, user => showUserInfo(user));
 
   // ======= Firestore helpers =======
   async function ensurePresetMembersExist(){
@@ -99,7 +353,7 @@
       createdAt: serverTimestamp()
     });
     await loadTransactions(month, year);
-    toast('Transação registrada');
+    toast('💰 Transação registrada com sucesso!');
   }
 
   async function loadTransactions(month = currentMonth, year = currentYear){
@@ -114,28 +368,55 @@
 
     const tbody = $('#transactionsList');
     tbody.innerHTML = rows.map(r => `
-      <tr class="border-b">
-        <td class="p-2">${r.data}</td>
-        <td class="p-2">${r.type}</td>
-        <td class="p-2">${r.description}</td>
-        <td class="p-2 text-right">R$ ${Number(r.value).toFixed(2)}</td>
-        <td class="p-2 text-center"><button data-id="${r.id}" class="deleteTx text-red-500">Excluir</button></td>
+      <tr class="hover:bg-gray-50 transition-colors">
+        <td class="p-4">
+          <div class="font-medium">${formatDate(r.data)}</div>
+        </td>
+        <td class="p-4">
+          <span class="inline-flex px-3 py-1 rounded-full text-xs font-medium ${r.type === 'entrada' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+            ${r.type === 'entrada' ? '📈 Entrada' : '📉 Saída'}
+          </span>
+        </td>
+        <td class="p-4">
+          <div class="font-medium text-gray-900">${r.description}</div>
+        </td>
+        <td class="p-4 text-right">
+          <div class="font-semibold ${r.type === 'entrada' ? 'text-green-600' : 'text-red-600'}">
+            R$ ${Number(r.value).toFixed(2)}
+          </div>
+        </td>
+        <td class="p-4 text-center">
+          <button data-id="${r.id}" class="deleteTx btn-danger">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        </td>
       </tr>
-    `).join('') || `<tr><td colspan="5" class="p-4 text-center text-gray-500">Nenhuma transação registrada</td></tr>`;
+    `).join('') || `<tr><td colspan="5" class="p-8 text-center text-gray-500">
+      <div class="flex flex-col items-center gap-2">
+        <i data-lucide="inbox" class="w-8 h-8 text-gray-300"></i>
+        <div>Nenhuma transação registrada</div>
+      </div>
+    </td></tr>`;
 
+    lucide.createIcons();
+
+    // Re-bind delete event listeners
     $$('.deleteTx').forEach(btn => btn.addEventListener('click', async e => {
-      const id = e.target.dataset.id;
-      if(!confirm('Excluir transação?')) return;
+      const id = e.target.closest('button').dataset.id;
+      if(!confirm('🗑️ Tem certeza que deseja excluir esta transação?')) return;
       await deleteDoc(doc(db,'transactions', id));
-      toast('Transação excluída');
+      toast('🗑️ Transação excluída!');
       loadTransactions(month, year);
     }));
 
     const entradas = rows.filter(r=> r.type === 'entrada').reduce((s,r)=> s + Number(r.value||0), 0);
     const saidas = rows.filter(r=> r.type === 'saida').reduce((s,r)=> s + Number(r.value||0), 0);
+    const saldo = entradas - saidas;
+    
     $('#totalEntradas').innerText = entradas.toFixed(2);
     $('#totalSaidas').innerText = saidas.toFixed(2);
-    $('#saldoAtual').innerText = (entradas - saidas).toFixed(2);
+    $('#saldoAtual').innerText = saldo.toFixed(2);
+    $('#saldoAtual').className = saldo >= 0 ? 'text-green-600 font-bold' : 'text-red-600 font-bold';
   }
 
   // ======= Members & Contributions =======
@@ -170,33 +451,54 @@
 
     const table = $('#membersTableBody');
     table.innerHTML = contributions.map(c => `
-      <tr class="border-b">
-        <td class="p-2">${c.memberName}</td>
-        <td class="p-2 text-center"><input data-id="${c.id}" data-field="rcc" type="number" min="0" step="0.01" value="${Number(c.rcc||0)}" class="w-28 input-num" /></td>
-        <td class="p-2 text-center"><input data-id="${c.id}" data-field="caixaExtra" type="number" min="0" step="0.01" value="${Number(c.caixaExtra||0)}" class="w-28 input-num" /></td>
-        <td class="p-2 text-center"><button data-memberid="${c.memberId}" class="delMember text-red-500">Excluir</button></td>
+      <tr class="hover:bg-gray-50 transition-colors">
+        <td class="p-4">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+              ${c.memberName.charAt(0)}
+            </div>
+            <div class="font-medium text-gray-900">${c.memberName}</div>
+          </div>
+        </td>
+        <td class="p-4 text-center">
+          <input data-id="${c.id}" data-field="rcc" type="number" min="0" step="0.01" value="${Number(c.rcc||0)}" 
+                 class="input-elegant w-28 text-center" />
+        </td>
+        <td class="p-4 text-center">
+          <input data-id="${c.id}" data-field="caixaExtra" type="number" min="0" step="0.01" value="${Number(c.caixaExtra||0)}" 
+                 class="input-elegant w-28 text-center" />
+        </td>
+        <td class="p-4 text-center">
+          <button data-memberid="${c.memberId}" class="delMember btn-danger">
+            <i data-lucide="user-minus" class="w-4 h-4"></i>
+          </button>
+        </td>
       </tr>
     `).join('');
 
-    $$('.input-num').forEach(inp => {
+    lucide.createIcons();
+    
+    // Re-bind input change listeners
+    $$('.input-elegant[data-field]').forEach(inp => {
       inp.addEventListener('change', async e => {
         const id = e.target.dataset.id;
         const field = e.target.dataset.field;
         const value = Number(e.target.value || 0);
         await updateDoc(doc(db,'contributions', id), { [field]: value });
-        toast('Contribuição atualizada');
+        toast('💝 Contribuição atualizada!');
         loadMembersAndContributions(currentMonth, currentYear);
       });
     });
 
+    // Re-bind delete member listeners
     $$('.delMember').forEach(btn => btn.addEventListener('click', async e => {
-      const memberId = e.target.dataset.memberid;
-      if(!confirm('Excluir membro e todas as contribuições dele?')) return;
+      const memberId = e.target.closest('button').dataset.memberid;
+      if(!confirm('👥 Tem certeza que deseja excluir este membro e todas as contribuições dele?')) return;
       await deleteDoc(doc(db,'members', memberId));
       const q = query(collection(db,'contributions'), where('memberId','==', memberId));
       const qSnap = await getDocs(q);
       for(const d of qSnap.docs) await deleteDoc(doc(db,'contributions', d.id));
-      toast('Membro excluído');
+      toast('👥 Membro excluído!');
       loadMembersAndContributions(currentMonth, currentYear);
     }));
 
@@ -204,14 +506,6 @@
     const totalCaixa = contributions.reduce((s,c)=> s + Number(c.caixaExtra||0), 0);
     $('#totalRcc').innerText = totalRcc.toFixed(2);
     $('#totalCaixa').innerText = totalCaixa.toFixed(2);
-  }
-
-  async function addMemberByName(name){
-    if(!name || !name.trim()) return toast('Nome inválido');
-    await addDoc(collection(db,'members'), { name: name.trim(), createdAt: serverTimestamp() });
-    toast('Membro adicionado');
-    $('#newMemberName').value = '';
-    loadMembersAndContributions(currentMonth, currentYear);
   }
 
   // ======= Contabilidade anual =======
@@ -257,38 +551,88 @@
 
     $('#reportYear').innerText = year;
     const tbody = $('#reportTableBody');
+    const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    
     tbody.innerHTML = report.map(r => `
-      <tr class="border-b">
-        <td class="p-2">${r.month}</td>
-        <td class="p-2 text-right">R$ ${r.entradas.toFixed(2)}</td>
-        <td class="p-2 text-right">R$ ${r.rcc.toFixed(2)}</td>
-        <td class="p-2 text-right">R$ ${r.saidas.toFixed(2)}</td>
-        <td class="p-2 text-right">R$ ${r.caixaExtra.toFixed(2)}</td>
-        <td class="p-2 text-right font-semibold">R$ ${r.resultado.toFixed(2)}</td>
+      <tr class="hover:bg-gray-50 transition-colors">
+        <td class="p-4">
+          <div class="font-medium">${monthNames[r.month - 1]}</div>
+        </td>
+        <td class="p-4 text-right">
+          <div class="font-medium text-green-600">R$ ${r.entradas.toFixed(2)}</div>
+        </td>
+        <td class="p-4 text-right">
+          <div class="font-medium text-blue-600">R$ ${r.rcc.toFixed(2)}</div>
+        </td>
+        <td class="p-4 text-right">
+          <div class="font-medium text-red-600">R$ ${r.saidas.toFixed(2)}</div>
+        </td>
+        <td class="p-4 text-right">
+          <div class="font-medium text-yellow-600">R$ ${r.caixaExtra.toFixed(2)}</div>
+        </td>
+        <td class="p-4 text-right">
+          <div class="font-bold ${r.resultado >= 0 ? 'text-green-600' : 'text-red-600'}">
+            R$ ${r.resultado.toFixed(2)}
+          </div>
+        </td>
       </tr>
-    `).join('') || `<tr><td colspan="6" class="p-4 text-center text-gray-500">Nenhum dado encontrado para ${year}</td></tr>`;
+    `).join('') || `<tr><td colspan="6" class="p-8 text-center text-gray-500">
+      <div class="flex flex-col items-center gap-2">
+        <i data-lucide="calendar-x" class="w-8 h-8 text-gray-300"></i>
+        <div>Nenhum dado encontrado para ${year}</div>
+      </div>
+    </td></tr>`;
+
+    lucide.createIcons();
 
     $('#annualEntradas').innerText = totals.totalEntradas.toFixed(2);
     $('#annualRcc').innerText = totals.totalRcc.toFixed(2);
     $('#annualSaidas').innerText = totals.totalSaidas.toFixed(2);
     $('#annualCaixa').innerText = totals.totalCaixaExtra.toFixed(2);
     $('#annualSaldo').innerText = totals.lucroLiquido.toFixed(2);
+    $('#annualSaldo').className = totals.lucroLiquido >= 0 ? 'text-green-600 font-bold' : 'text-red-600 font-bold';
+  }
+
+  // ======= Utility Functions =======
+  function formatDate(dateStr) {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('pt-BR');
+  }
+
+  function toast(msg){
+    const t = document.createElement('div');
+    t.innerText = msg;
+    t.className = 'toast';
+    document.body.appendChild(t);
+    setTimeout(()=> {
+      t.style.animation = 'slideInRight 0.3s ease-out reverse';
+      setTimeout(()=> t.remove(), 300);
+    }, 3000); // Increased duration to 3 seconds for better visibility
   }
 
   // ======= UI Bindings =======
   window.addEventListener('DOMContentLoaded', async () => {
-    $$('#navMenu button').forEach(btn => btn.addEventListener('click', e => {
+    // Navigation
+    $$('.nav-item').forEach(btn => btn.addEventListener('click', e => {
       const target = e.currentTarget.dataset.view;
+      $$('.nav-item').forEach(n => n.classList.remove('active'));
+      e.currentTarget.classList.add('active');
       $$('#views > section').forEach(s => s.classList.add('hidden'));
       $(`#${target}`).classList.remove('hidden');
+      $(`#${target}`).classList.add('fade-in');
     }));
 
+    // Set initial view
     $('#tesouraria').classList.remove('hidden');
+    $('#tesouraria').classList.add('fade-in');
+    $('[data-view="tesouraria"]').classList.add('active');
 
+    // Load initial data
     loadTransactions(currentMonth, currentYear);
-    loadMembersAndContributions(currentMonth, currentYear);
+    loadMembersAndContributions(currentMonth, currentYear);  
     buildAnnualReport(currentYear);
 
+    // Transaction form
     $('#txForm').addEventListener('submit', async e => {
       e.preventDefault();
       const type = $('#txType').value;
@@ -297,150 +641,393 @@
       const mes = $('#txMonth').value;
       const ano = $('#txYear').value;
       const data = $('#txDate').value;
-      if(!desc || !val) return toast('Preencha descrição e valor');
+      
+      if(!desc || !val) return toast('❌ Preencha descrição e valor');
+      
       await saveTransaction({ type, description: desc, value: val, month: mes, year: ano, date: data });
-      $('#txDesc').value = ''; $('#txValue').value = '';
-      loadTransactions(mes, ano);
+      $('#txForm').reset();
+      $('#txMonth').value = currentMonth;
+      $('#txYear').value = currentYear;
+      $('#txDate').value = new Date().toISOString().split('T')[0];
     });
 
+    // Month/Year filters
     $('#selectedMonth').addEventListener('change', () => loadTransactions($('#selectedMonth').value, $('#selectedYear').value));
     $('#selectedYear').addEventListener('change', () => loadTransactions($('#selectedMonth').value, $('#selectedYear').value));
-
     $('#memberMonth').addEventListener('change', () => loadMembersAndContributions($('#memberMonth').value, $('#memberYear').value));
     $('#memberYear').addEventListener('change', () => loadMembersAndContributions($('#memberMonth').value, $('#memberYear').value));
-
-    $('#btnAddMember').addEventListener('click', () => addMemberByName($('#newMemberName').value));
-
     $('#reportYearInput').addEventListener('change', () => buildAnnualReport($('#reportYearInput').value));
+
+    // Add member
+    $('#btnAddMember').addEventListener('click', () => addMemberByName($('#newMemberName').value));
+    $('#newMemberName').addEventListener('keypress', e => {
+      if(e.key === 'Enter') addMemberByName($('#newMemberName').value);
+    });
+
+    // Initialize Lucide icons
+    lucide.createIcons();
   });
-
-  function toast(msg){
-    const t = document.createElement('div');
-    t.innerText = msg;
-    t.className = 'fixed bottom-4 right-4 bg-black text-white px-4 py-2 rounded shadow';
-    document.body.appendChild(t);
-    setTimeout(()=> t.remove(), 3000);
-  }
-
 </script>
 
-<!-- ========== Sidebar ========== -->
-<div class="flex">
-  <aside class="sidebar bg-white shadow p-4 hidden-on-mobile">
-    <h2 class="text-xl font-bold mb-4">Menu</h2>
-    <div id="userArea" class="mb-4"></div>
-    <div id="navMenu" class="flex flex-col gap-2">
-      <button class="text-left p-2 hover:bg-gray-100 rounded" data-view="tesouraria">Tesouraria</button>
-      <button class="text-left p-2 hover:bg-gray-100 rounded" data-view="membros">Membros</button>
-      <button class="text-left p-2 hover:bg-gray-100 rounded" data-view="contabilidade">Contabilidade</button>
+<div class="mobile-header">
+  <div class="flex items-center gap-3">
+    <div class="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+      <i data-lucide="church" class="w-5 h-5"></i>
     </div>
+    <h1 class="text-lg font-bold">Tesouraria - Grupo de Oração</h1>
+  </div>
+</div>
+
+<div class="flex min-h-screen">
+  <aside class="sidebar">
+    <div class="logo-area">
+      <div class="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-3">
+        <i data-lucide="church" class="w-7 h-7 text-white"></i>
+      </div>
+      <h1 class="text-xl font-bold text-gray-800">Tesouraria</h1>
+      <p class="text-gray-600 text-sm">Grupo de Oração</p>
+    </div>
+
+    <nav class="flex-1">
+      <div class="nav-item" data-view="tesouraria">
+        <i data-lucide="wallet" class="w-5 h-5"></i>
+        <span>Tesouraria</span>
+      </div>
+      <div class="nav-item" data-view="membros">
+        <i data-lucide="users" class="w-5 h-5"></i>
+        <span>Membros</span>
+      </div>
+      <div class="nav-item" data-view="contabilidade">
+        <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+        <span>Contabilidade</span>
+      </div>
+    </nav>
   </aside>
 
-  <main class="flex-1 p-4">
+  <main class="flex-1 main-content p-8">
     <div id="views">
 
-      <!-- Tesouraria -->
-      <section id="tesouraria" class="hidden">
-        <h1 class="text-2xl font-bold mb-4">💰 Tesouraria</h1>
-        <form id="txForm" class="flex flex-col sm:flex-row gap-2 mb-4 items-center">
-          <select id="txType" class="p-2 border rounded">
-            <option value="entrada">Entrada</option>
-            <option value="saida">Saída</option>
-          </select>
-          <input id="txDesc" placeholder="Descrição" class="p-2 border rounded flex-1" required />
-          <input id="txValue" type="number" placeholder="Valor" step="0.01" class="p-2 border rounded w-28" required />
-          <input id="txMonth" type="number" min="1" max="12" placeholder="Mês" class="p-2 border rounded w-20" value="${currentMonth}" required />
-          <input id="txYear" type="number" min="2025" max="2030" placeholder="Ano" class="p-2 border rounded w-24" value="${currentYear}" required />
-          <input id="txDate" type="date" class="p-2 border rounded w-36" value="${new Date().toISOString().split('T')[0]}" required />
-          <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded">Salvar</button>
-        </form>
-
-        <div class="flex gap-4 mb-4">
-          <div class="card flex-1">
-            <h2 class="font-semibold">Resumo</h2>
-            <p>Entradas: R$ <span id="totalEntradas">0.00</span></p>
-            <p>Saídas: R$ <span id="totalSaidas">0.00</span></p>
-            <p>Saldo: R$ <span id="saldoAtual">0.00</span></p>
+      <section id="tesouraria" class="hidden space-y-8">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+            <i data-lucide="wallet" class="w-6 h-6 text-white"></i>
+          </div>
+          <div>
+            <h1 class="text-3xl font-bold text-gray-900">Tesouraria</h1>
+            <p class="text-gray-600">Gerencie as finanças do grupo</p>
           </div>
         </div>
 
-        <div class="card">
-          <h2 class="font-semibold mb-2">Histórico</h2>
-          <div class="flex gap-2 mb-2">
-            <input id="selectedMonth" type="number" min="1" max="12" class="p-2 border rounded w-20" value="${currentMonth}" />
-            <input id="selectedYear" type="number" min="2025" max="2030" class="p-2 border rounded w-24" value="${currentYear}" />
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="stat-card stat-card-success">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-green-100 text-sm font-medium">Entradas</p>
+                <p class="text-3xl font-bold">R$ <span id="totalEntradas">0.00</span></p>
+              </div>
+              <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                <i data-lucide="trending-up" class="w-6 h-6"></i>
+              </div>
+            </div>
           </div>
-          <table class="w-full text-left border-collapse">
-            <thead>
-              <tr class="border-b">
-                <th class="p-2">Data</th>
-                <th class="p-2">Tipo</th>
-                <th class="p-2">Descrição</th>
-                <th class="p-2 text-right">Valor</th>
-                <th class="p-2 text-center">Ação</th>
-              </tr>
-            </thead>
-            <tbody id="transactionsList"></tbody>
-          </table>
+
+          <div class="stat-card stat-card-warning">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-yellow-100 text-sm font-medium">Saídas</p>
+                <p class="text-3xl font-bold">R$ <span id="totalSaidas">0.00</span></p>
+              </div>
+              <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                <i data-lucide="trending-down" class="w-6 h-6"></i>
+              </div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-blue-100 text-sm font-medium">Saldo</p>
+                <p class="text-3xl font-bold">R$ <span id="saldoAtual">0.00</span></p>
+              </div>
+              <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                <i data-lucide="piggy-bank" class="w-6 h-6"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-elegant p-6">
+          <h2 class="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
+            <i data-lucide="plus-circle" class="w-5 h-5 text-blue-600"></i>
+            Nova Transação
+          </h2>
+          
+          <form id="txForm" class="form-grid">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
+              <select id="txType" class="input-elegant w-full">
+                <option value="entrada">📈 Entrada</option>
+                <option value="saida">📉 Saída</option>
+              </select>
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Descrição</label>
+              <input id="txDesc" placeholder="Digite a descrição..." class="input-elegant w-full" required />
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Valor</label>
+              <input id="txValue" type="number" placeholder="0,00" step="0.01" class="input-elegant w-full" required />
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Mês</label>
+              <input id="txMonth" type="number" min="1" max="12" class="input-elegant w-full" required />
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Ano</label>
+              <input id="txYear" type="number" min="2025" max="2030" class="input-elegant w-full" required />
+            </div>
+            
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Data</label>
+              <input id="txDate" type="date" class="input-elegant w-full" required />
+            </div>
+
+            <div class="md:col-span-2">
+              <button type="submit" class="btn-success w-full">
+                <i data-lucide="save" class="w-4 h-4 mr-2"></i>
+                Salvar Transação
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <div class="card-elegant p-6">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-semibold text-gray-900 flex items-center gap-2">
+              <i data-lucide="history" class="w-5 h-5 text-blue-600"></i>
+              Histórico de Transações
+            </h2>
+            
+            <div class="flex gap-3">
+              <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">Mês</label>
+                <input id="selectedMonth" type="number" min="1" max="12" class="input-elegant w-20" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">Ano</label>
+                <input id="selectedYear" type="number" min="2025" max="2030" class="input-elegant w-24" />
+              </div>
+            </div>
+          </div>
+          
+          <div class="table-elegant">
+            <table class="w-full">
+              <thead>
+                <tr>
+                  <th class="text-left">Data</th>
+                  <th class="text-left">Tipo</th>
+                  <th class="text-left">Descrição</th>
+                  <th class="text-right">Valor</th>
+                  <th class="text-center">Ação</th>
+                </tr>
+              </thead>
+              <tbody id="transactionsList"></tbody>
+            </table>
+          </div>
         </div>
       </section>
 
-      <!-- Membros -->
-      <section id="membros" class="hidden">
-        <h1 class="text-2xl font-bold mb-4">👥 Membros</h1>
-        <div class="flex gap-2 mb-2 items-center">
-          <input id="newMemberName" placeholder="Novo membro" class="p-2 border rounded flex-1" />
-          <button id="btnAddMember" class="px-4 py-2 bg-blue-600 text-white rounded">Adicionar</button>
+      <section id="membros" class="hidden space-y-8">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 bg-gradient-to-r from-green-500 to-blue-600 rounded-xl flex items-center justify-center">
+            <i data-lucide="users" class="w-6 h-6 text-white"></i>
+          </div>
+          <div>
+            <h1 class="text-3xl font-bold text-gray-900">Membros</h1>
+            <p class="text-gray-600">Gerencie membros e contribuições</p>
+          </div>
         </div>
-        <div class="flex gap-2 mb-2">
-          <input id="memberMonth" type="number" min="1" max="12" class="p-2 border rounded w-20" value="${currentMonth}" />
-          <input id="memberYear" type="number" min="2025" max="2030" class="p-2 border rounded w-24" value="${currentYear}" />
-          <span>Total membros: <span id="membersCount">0</span></span>
+
+        <div class="card-elegant p-6">
+          <h2 class="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
+            <i data-lucide="user-plus" class="w-5 h-5 text-blue-600"></i>
+            Adicionar Membro
+          </h2>
+          
+          <div class="flex gap-4">
+            <input id="newMemberName" placeholder="Nome do novo membro..." class="input-elegant flex-1" />
+            <button id="btnAddMember" class="btn-primary">
+              <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
+              Adicionar
+            </button>
+          </div>
         </div>
-        <table class="w-full border-collapse">
-          <thead>
-            <tr class="border-b">
-              <th class="p-2">Nome</th>
-              <th class="p-2 text-center">RCC</th>
-              <th class="p-2 text-center">Caixa Extra</th>
-              <th class="p-2 text-center">Ação</th>
-            </tr>
-          </thead>
-          <tbody id="membersTableBody"></tbody>
-        </table>
-        <div class="mt-2">
-          Totais: RCC: R$ <span id="totalRcc">0.00</span> | Caixa Extra: R$ <span id="totalCaixa">0.00</span>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div class="stat-card">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-blue-100 text-sm font-medium">Total de Membros</p>
+                <p class="text-3xl font-bold"><span id="membersCount">0</span></p>
+              </div>
+              <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                <i data-lucide="users" class="w-6 h-6"></i>
+              </div>
+            </div>
+          </div>
+
+          <div class="stat-card stat-card-success">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-green-100 text-sm font-medium">Total RCC</p>
+                <p class="text-3xl font-bold">R$ <span id="totalRcc">0.00</span></p>
+              </div>
+              <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                <i data-lucide="heart" class="w-6 h-6"></i>
+              </div>
+            </div>
+          </div>
+
+          <div class="stat-card stat-card-warning">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-yellow-100 text-sm font-medium">Caixa Extra</p>
+                <p class="text-3xl font-bold">R$ <span id="totalCaixa">0.00</span></p>
+              </div>
+              <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                <i data-lucide="gift" class="w-6 h-6"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-elegant p-6">
+          <div class="flex items-center justify-between mb-6">
+            <h2 class="text-xl font-semibold text-gray-900 flex items-center gap-2">
+              <i data-lucide="list" class="w-5 h-5 text-blue-600"></i>
+              Contribuições
+            </h2>
+            
+            <div class="flex gap-3">
+              <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">Mês</label>
+                <input id="memberMonth" type="number" min="1" max="12" class="input-elegant w-20" />
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">Ano</label>
+                <input id="memberYear" type="number" min="2025" max="2030" class="input-elegant w-24" />
+              </div>
+            </div>
+          </div>
+          
+          <div class="table-elegant">
+            <table class="w-full">
+              <thead>
+                <tr>
+                  <th class="text-left">Membro</th>
+                  <th class="text-center">RCC (R$)</th>
+                  <th class="text-center">Caixa Extra (R$)</th>
+                  <th class="text-center">Ação</th>
+                </tr>
+              </thead>
+              <tbody id="membersTableBody"></tbody>
+            </table>
+          </div>
         </div>
       </section>
 
-      <!-- Contabilidade -->
-      <section id="contabilidade" class="hidden">
-        <h1 class="text-2xl font-bold mb-4">📊 Contabilidade Anual</h1>
-        <div class="flex gap-2 mb-2 items-center">
-          <input id="reportYearInput" type="number" min="2025" max="2030" class="p-2 border rounded w-24" value="${currentYear}" />
-          <span>Ano: <span id="reportYear">${currentYear}</span></span>
+      <section id="contabilidade" class="hidden space-y-8">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl flex items-center justify-center">
+            <i data-lucide="bar-chart-3" class="w-6 h-6 text-white"></i>
+          </div>
+          <div>
+            <h1 class="text-3xl font-bold text-gray-900">Contabilidade</h1>
+            <p class="text-gray-600">Relatório anual consolidado</p>
+          </div>
         </div>
-        <table class="w-full border-collapse">
-          <thead>
-            <tr class="border-b">
-              <th class="p-2">Mês</th>
-              <th class="p-2 text-right">Entradas</th>
-              <th class="p-2 text-right">RCC</th>
-              <th class="p-2 text-right">Saídas</th>
-              <th class="p-2 text-right">Caixa Extra</th>
-              <th class="p-2 text-right">Resultado</th>
-            </tr>
-          </thead>
-          <tbody id="reportTableBody"></tbody>
-        </table>
-        <div class="mt-2 font-semibold">
-          Totais: Entradas: R$ <span id="annualEntradas">0.00</span> | RCC: R$ <span id="annualRcc">0.00</span> | Saídas: R$ <span id="annualSaidas">0.00</span> | Caixa Extra: R$ <span id="annualCaixa">0.00</span> | Lucro Líquido: R$ <span id="annualSaldo">0.00</span>
+
+        <div class="card-elegant p-6">
+          <div class="flex items-center gap-4">
+            <label class="text-sm font-medium text-gray-700">Ano do relatório:</label>
+            <input id="reportYearInput" type="number" min="2025" max="2030" class="input-elegant w-24" />
+            <span class="text-lg font-semibold text-gray-900">Relatório de <span id="reportYear">2025</span></span>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div class="card-elegant p-4 text-center">
+            <div class="text-green-600 text-2xl font-bold">R$ <span id="annualEntradas">0.00</span></div>
+            <div class="text-sm text-gray-600">Entradas</div>
+          </div>
+          <div class="card-elegant p-4 text-center">
+            <div class="text-blue-600 text-2xl font-bold">R$ <span id="annualRcc">0.00</span></div>
+            <div class="text-sm text-gray-600">RCC</div>
+          </div>
+          <div class="card-elegant p-4 text-center">
+            <div class="text-red-600 text-2xl font-bold">R$ <span id="annualSaidas">0.00</span></div>
+            <div class="text-sm text-gray-600">Saídas</div>
+          </div>
+          <div class="card-elegant p-4 text-center">
+            <div class="text-yellow-600 text-2xl font-bold">R$ <span id="annualCaixa">0.00</span></div>
+            <div class="text-sm text-gray-600">Caixa Extra</div>
+          </div>
+          <div class="card-elegant p-4 text-center">
+            <div class="text-2xl font-bold" id="annualSaldo">R$ 0.00</div>
+            <div class="text-sm text-gray-600">Resultado</div>
+          </div>
+        </div>
+
+        <div class="card-elegant p-6">
+          <h2 class="text-xl font-semibold text-gray-900 mb-6 flex items-center gap-2">
+            <i data-lucide="calendar" class="w-5 h-5 text-blue-600"></i>
+            Detalhamento Mensal
+          </h2>
+          
+          <div class="table-elegant">
+            <table class="w-full">
+              <thead>
+                <tr>
+                  <th class="text-left">Mês</th>
+                  <th class="text-right">Entradas</th>
+                  <th class="text-right">RCC</th>
+                  <th class="text-right">Saídas</th>
+                  <th class="text-right">Caixa Extra</th>
+                  <th class="text-right">Resultado</th>
+                </tr>
+              </thead>
+              <tbody id="reportTableBody"></tbody>
+            </table>
+          </div>
         </div>
       </section>
 
     </div>
   </main>
 </div>
+
+<script>
+  // Initialize form values
+  document.addEventListener('DOMContentLoaded', () => {
+    const today = new Date();
+    const currentMonth = today.getMonth() + 1;
+    const currentYear = today.getFullYear();
+    const todayStr = today.toISOString().split('T')[0];
+    
+    document.getElementById('txMonth').value = currentMonth;
+    document.getElementById('txYear').value = currentYear;
+    document.getElementById('txDate').value = todayStr;
+    document.getElementById('selectedMonth').value = currentMonth;
+    document.getElementById('selectedYear').value = currentYear;
+    document.getElementById('memberMonth').value = currentMonth;
+    document.getElementById('memberYear').value = currentYear;
+    document.getElementById('reportYearInput').value = currentYear;
+  });
+</script>
 
 </body>
 </html>
