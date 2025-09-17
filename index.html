@@ -327,13 +327,21 @@
 
   // ======= Firestore helpers =======
   async function ensurePresetMembersExist(){
-    const col = collection(db,'members');
-    const snapshot = await getDocs(col);
-    const existing = new Set(snapshot.docs.map(d => d.data().name));
-    for(const name of PRESET_MEMBERS){
-      if(!existing.has(name)){
-        await addDoc(col, { name, createdAt: serverTimestamp() });
+    try {
+      console.log('Verificando membros pré-definidos...');
+      const col = collection(db,'members');
+      const snapshot = await getDocs(col);
+      const existing = new Set(snapshot.docs.map(d => d.data().name));
+      
+      for(const name of PRESET_MEMBERS){
+        if(!existing.has(name)){
+          console.log(`Adicionando membro: ${name}`);
+          await addDoc(col, { name, createdAt: serverTimestamp() });
+        }
       }
+      console.log('Membros verificados com sucesso');
+    } catch (error) {
+      console.error('Erro ao verificar membros:', error);
     }
   }
 
@@ -342,338 +350,623 @@
 
   // ======= Transactions =======
   async function saveTransaction({ type, description, value, month, year, date }){
-    const col = collection(db,'transactions');
-    await addDoc(col, {
-      type, description,
-      value: Number(value),
-      mes: Number(month), ano: Number(year),
-      data: date,
-      createdAt: serverTimestamp()
-    });
-    await loadTransactions(month, year);
-    toast('💰 Transação registrada com sucesso!');
+    try {
+      console.log('Salvando transação:', { type, description, value, month, year, date });
+      const col = collection(db,'transactions');
+      await addDoc(col, {
+        type: type || 'entrada',
+        description: description || '',
+        value: Number(value) || 0,
+        mes: Number(month) || currentMonth,
+        ano: Number(year) || currentYear,
+        data: date || new Date().toISOString().split('T')[0],
+        createdAt: serverTimestamp()
+      });
+      
+      console.log('Transação salva, recarregando dados...');
+      await loadTransactions(month, year);
+      toast('💰 Transação registrada com sucesso!');
+    } catch (error) {
+      console.error('Erro ao salvar transação:', error);
+      toast('❌ Erro ao salvar transação');
+    }
   }
 
   async function loadTransactions(month = currentMonth, year = currentYear){
-    currentMonth = Number(month); currentYear = Number(year);
-    $('#selectedMonth').value = currentMonth;
-    $('#selectedYear').value = currentYear;
+    try {
+      console.log(`Carregando transações para ${month}/${year}`);
+      currentMonth = Number(month); 
+      currentYear = Number(year);
+      
+      // Atualizar os campos de filtro
+      if ($('#selectedMonth')) $('#selectedMonth').value = currentMonth;
+      if ($('#selectedYear')) $('#selectedYear').value = currentYear;
 
-    const col = collection(db,'transactions');
-    const q = query(col, where('mes','==', Number(month)), where('ano','==', Number(year)), orderBy('data','desc'));
-    const snap = await getDocs(q);
-    const rows = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      const col = collection(db,'transactions');
+      const q = query(
+        col, 
+        where('mes','==', currentMonth), 
+        where('ano','==', currentYear), 
+        orderBy('createdAt','desc')
+      );
+      
+      const snap = await getDocs(q);
+      const rows = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      
+      console.log(`${rows.length} transações encontradas:`, rows);
 
-    const tbody = $('#transactionsList');
-    tbody.innerHTML = rows.map(r => `
-      <tr class="hover:bg-gray-50 transition-colors">
-        <td class="p-4">
-          <div class="font-medium">${formatDate(r.data)}</div>
-        </td>
-        <td class="p-4">
-          <span class="inline-flex px-3 py-1 rounded-full text-xs font-medium ${r.type === 'entrada' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
-            ${r.type === 'entrada' ? '📈 Entrada' : '📉 Saída'}
-          </span>
-        </td>
-        <td class="p-4">
-          <div class="font-medium text-gray-900">${r.description}</div>
-        </td>
-        <td class="p-4 text-right">
-          <div class="font-semibold ${r.type === 'entrada' ? 'text-green-600' : 'text-red-600'}">
-            R$ ${Number(r.value).toFixed(2)}
+      const tbody = $('#transactionsList');
+      if (!tbody) {
+        console.error('Elemento #transactionsList não encontrado');
+        return;
+      }
+
+      if (rows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-gray-500">
+          <div class="flex flex-col items-center gap-2">
+            <i data-lucide="inbox" class="w-8 h-8 text-gray-300"></i>
+            <div>Nenhuma transação registrada para ${month}/${year}</div>
           </div>
-        </td>
-        <td class="p-4 text-center">
-          <button data-id="${r.id}" class="deleteTx btn-danger">
-            <i data-lucide="trash-2" class="w-4 h-4"></i>
-          </button>
-        </td>
-      </tr>
-    `).join('') || `<tr><td colspan="5" class="p-8 text-center text-gray-500">
-      <div class="flex flex-col items-center gap-2">
-        <i data-lucide="inbox" class="w-8 h-8 text-gray-300"></i>
-        <div>Nenhuma transação registrada</div>
-      </div>
-    </td></tr>`;
+        </td></tr>`;
+      } else {
+        tbody.innerHTML = rows.map(r => `
+          <tr class="hover:bg-gray-50 transition-colors">
+            <td class="p-4">
+              <div class="font-medium">${formatDate(r.data)}</div>
+            </td>
+            <td class="p-4">
+              <span class="inline-flex px-3 py-1 rounded-full text-xs font-medium ${r.type === 'entrada' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                ${r.type === 'entrada' ? '📈 Entrada' : '📉 Saída'}
+              </span>
+            </td>
+            <td class="p-4">
+              <div class="font-medium text-gray-900">${r.description || 'Sem descrição'}</div>
+            </td>
+            <td class="p-4 text-right">
+              <div class="font-semibold ${r.type === 'entrada' ? 'text-green-600' : 'text-red-600'}">
+                R$ ${Number(r.value || 0).toFixed(2)}
+              </div>
+            </td>
+            <td class="p-4 text-center">
+              <button data-id="${r.id}" class="deleteTx btn-danger">
+                <i data-lucide="trash-2" class="w-4 h-4"></i>
+              </button>
+            </td>
+          </tr>
+        `).join('');
+      }
 
-    lucide.createIcons();
+      // Recriar os ícones após atualizar o HTML
+      lucide.createIcons();
 
-    $$('.deleteTx').forEach(btn => btn.addEventListener('click', async e => {
-      const id = e.target.closest('button').dataset.id;
-      if(!confirm('🗑️ Tem certeza que deseja excluir esta transação?')) return;
-      await deleteDoc(doc(db,'transactions', id));
-      toast('🗑️ Transação excluída!');
-      loadTransactions(month, year);
-    }));
+      // Reativar os event listeners para os botões de deletar
+      $$('.deleteTx').forEach(btn => btn.addEventListener('click', async e => {
+        const id = e.target.closest('button').dataset.id;
+        if(!confirm('🗑️ Tem certeza que deseja excluir esta transação?')) return;
+        
+        try {
+          await deleteDoc(doc(db,'transactions', id));
+          toast('🗑️ Transação excluída!');
+          loadTransactions(currentMonth, currentYear);
+        } catch (error) {
+          console.error('Erro ao excluir transação:', error);
+          toast('❌ Erro ao excluir transação');
+        }
+      }));
 
-    const entradas = rows.filter(r=> r.type === 'entrada').reduce((s,r)=> s + Number(r.value||0), 0);
-    const saidas = rows.filter(r=> r.type === 'saida').reduce((s,r)=> s + Number(r.value||0), 0);
-    const saldo = entradas - saidas;
-    
-    $('#totalEntradas').innerText = entradas.toFixed(2);
-    $('#totalSaidas').innerText = saidas.toFixed(2);
-    $('#saldoAtual').innerText = saldo.toFixed(2);
-    $('#saldoAtual').className = saldo >= 0 ? 'text-green-600 font-bold' : 'text-red-600 font-bold';
+      // Calcular totais
+      const entradas = rows.filter(r=> r.type === 'entrada').reduce((s,r)=> s + Number(r.value||0), 0);
+      const saidas = rows.filter(r=> r.type === 'saida').reduce((s,r)=> s + Number(r.value||0), 0);
+      const saldo = entradas - saidas;
+      
+      // Atualizar elementos de totais
+      if ($('#totalEntradas')) $('#totalEntradas').innerText = entradas.toFixed(2);
+      if ($('#totalSaidas')) $('#totalSaidas').innerText = saidas.toFixed(2);
+      if ($('#saldoAtual')) {
+        $('#saldoAtual').innerText = saldo.toFixed(2);
+        $('#saldoAtual').className = saldo >= 0 ? 'text-green-600 font-bold' : 'text-red-600 font-bold';
+      }
+
+      console.log(`Totais calculados - Entradas: ${entradas}, Saídas: ${saidas}, Saldo: ${saldo}`);
+    } catch (error) {
+      console.error('Erro ao carregar transações:', error);
+      const tbody = $('#transactionsList');
+      if (tbody) {
+        tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-red-500">
+          <div class="flex flex-col items-center gap-2">
+            <i data-lucide="alert-circle" class="w-8 h-8"></i>
+            <div>Erro ao carregar transações</div>
+          </div>
+        </td></tr>`;
+      }
+    }
   }
 
   // ======= Members & Contributions =======
   async function loadMembersAndContributions(month = currentMonth, year = currentYear){
-    currentMonth = Number(month); currentYear = Number(year);
-    $('#memberMonth').value = currentMonth;
-    $('#memberYear').value = currentYear;
+    try {
+      console.log(`Carregando membros e contribuições para ${month}/${year}`);
+      currentMonth = Number(month); 
+      currentYear = Number(year);
+      
+      // Atualizar campos de filtro
+      if ($('#memberMonth')) $('#memberMonth').value = currentMonth;
+      if ($('#memberYear')) $('#memberYear').value = currentYear;
 
-    const memSnap = await getDocs(collection(db,'members'));
-    const members = memSnap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b)=> a.name.localeCompare(b.name));
-    $('#membersCount').innerText = members.length;
+      // Carregar membros
+      const memSnap = await getDocs(collection(db,'members'));
+      const members = memSnap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b)=> a.name.localeCompare(b.name));
+      
+      console.log(`${members.length} membros encontrados:`, members.map(m => m.name));
+      
+      if ($('#membersCount')) $('#membersCount').innerText = members.length;
 
-    for(const m of members){
-      const q = query(collection(db,'contributions'), where('memberId','==', m.id), where('month','==', currentMonth), where('year','==', currentYear));
-      const snap = await getDocs(q);
-      if(snap.empty){
-        await addDoc(collection(db,'contributions'), {
-          memberId: m.id,
-          memberName: m.name,
-          month: currentMonth,
-          year: currentYear,
-          rcc: 0,
-          caixaExtra: 0,
-          createdAt: serverTimestamp()
+      // Criar contribuições para membros que não têm no mês/ano atual
+      for(const m of members){
+        const q = query(
+          collection(db,'contributions'), 
+          where('memberId','==', m.id), 
+          where('month','==', currentMonth), 
+          where('year','==', currentYear)
+        );
+        const snap = await getDocs(q);
+        if(snap.empty){
+          console.log(`Criando contribuição para ${m.name}`);
+          await addDoc(collection(db,'contributions'), {
+            memberId: m.id,
+            memberName: m.name,
+            month: currentMonth,
+            year: currentYear,
+            rcc: 0,
+            caixaExtra: 0,
+            createdAt: serverTimestamp()
+          });
+        }
+      }
+
+      // Carregar contribuições
+      const q2 = query(
+        collection(db,'contributions'), 
+        where('month','==', currentMonth), 
+        where('year','==', currentYear)
+      );
+      const snap2 = await getDocs(q2);
+      const contributions = snap2.docs.map(d => ({ id: d.id, ...d.data() }));
+      
+      // Ordenar por nome do membro
+      contributions.sort((a, b) => a.memberName.localeCompare(b.memberName));
+      
+      console.log(`${contributions.length} contribuições encontradas:`, contributions);
+
+      const table = $('#membersTableBody');
+      if (!table) {
+        console.error('Elemento #membersTableBody não encontrado');
+        return;
+      }
+
+      if (contributions.length === 0) {
+        table.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-gray-500">
+          <div class="flex flex-col items-center gap-2">
+            <i data-lucide="users-x" class="w-8 h-8 text-gray-300"></i>
+            <div>Nenhum membro encontrado para ${month}/${year}</div>
+          </div>
+        </td></tr>`;
+      } else {
+        table.innerHTML = contributions.map(c => `
+          <tr class="hover:bg-gray-50 transition-colors">
+            <td class="p-4">
+              <div class="flex items-center gap-3">
+                <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                  ${(c.memberName || 'N').charAt(0)}
+                </div>
+                <div class="font-medium text-gray-900">${c.memberName || 'Nome não informado'}</div>
+              </div>
+            </td>
+            <td class="p-4 text-center">
+              <input data-id="${c.id}" data-field="rcc" type="number" min="0" step="0.01" value="${Number(c.rcc||0)}" 
+                     class="input-elegant w-28 text-center contribution-input" />
+            </td>
+            <td class="p-4 text-center">
+              <input data-id="${c.id}" data-field="caixaExtra" type="number" min="0" step="0.01" value="${Number(c.caixaExtra||0)}" 
+                     class="input-elegant w-28 text-center contribution-input" />
+            </td>
+            <td class="p-4 text-center">
+              <button data-memberid="${c.memberId}" class="delMember btn-danger">
+                <i data-lucide="user-minus" class="w-4 h-4"></i>
+              </button>
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      // Recriar ícones
+      lucide.createIcons();
+
+      // Event listeners para inputs de contribuição
+      $$('.contribution-input').forEach(inp => {
+        inp.addEventListener('change', async e => {
+          const id = e.target.dataset.id;
+          const field = e.target.dataset.field;
+          const value = Number(e.target.value || 0);
+          
+          try {
+            console.log(`Atualizando ${field} para ${value} no documento ${id}`);
+            await updateDoc(doc(db,'contributions', id), { [field]: value });
+            toast('💝 Contribuição atualizada!');
+            // Recalcular totais
+            calculateContributionTotals();
+          } catch (error) {
+            console.error('Erro ao atualizar contribuição:', error);
+            toast('❌ Erro ao atualizar contribuição');
+          }
         });
+      });
+
+      // Event listeners para deletar membros
+      $$('.delMember').forEach(btn => btn.addEventListener('click', async e => {
+        const memberId = e.target.closest('button').dataset.memberid;
+        if(!confirm('👥 Tem certeza que deseja excluir este membro e todas as contribuições dele?')) return;
+        
+        try {
+          await deleteDoc(doc(db,'members', memberId));
+          const q = query(collection(db,'contributions'), where('memberId','==', memberId));
+          const qSnap = await getDocs(q);
+          for(const d of qSnap.docs) {
+            await deleteDoc(doc(db,'contributions', d.id));
+          }
+          toast('👥 Membro excluído!');
+          loadMembersAndContributions(currentMonth, currentYear);
+        } catch (error) {
+          console.error('Erro ao excluir membro:', error);
+          toast('❌ Erro ao excluir membro');
+        }
+      }));
+
+      // Calcular e exibir totais
+      calculateContributionTotals();
+
+    } catch (error) {
+      console.error('Erro ao carregar membros e contribuições:', error);
+      const table = $('#membersTableBody');
+      if (table) {
+        table.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-red-500">
+          <div class="flex flex-col items-center gap-2">
+            <i data-lucide="alert-circle" class="w-8 h-8"></i>
+            <div>Erro ao carregar membros</div>
+          </div>
+        </td></tr>`;
       }
     }
+  }
 
-    const q2 = query(collection(db,'contributions'), where('month','==', currentMonth), where('year','==', currentYear), orderBy('memberName'));
-    const snap2 = await getDocs(q2);
-    const contributions = snap2.docs.map(d => ({ id: d.id, ...d.data() }));
-
-    const table = $('#membersTableBody');
-    table.innerHTML = contributions.map(c => `
-      <tr class="hover:bg-gray-50 transition-colors">
-        <td class="p-4">
-          <div class="flex items-center gap-3">
-            <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
-              ${c.memberName.charAt(0)}
-            </div>
-            <div class="font-medium text-gray-900">${c.memberName}</div>
-          </div>
-        </td>
-        <td class="p-4 text-center">
-          <input data-id="${c.id}" data-field="rcc" type="number" min="0" step="0.01" value="${Number(c.rcc||0)}" 
-                 class="input-elegant w-28 text-center" />
-        </td>
-        <td class="p-4 text-center">
-          <input data-id="${c.id}" data-field="caixaExtra" type="number" min="0" step="0.01" value="${Number(c.caixaExtra||0)}" 
-                 class="input-elegant w-28 text-center" />
-        </td>
-        <td class="p-4 text-center">
-          <button data-memberid="${c.memberId}" class="delMember btn-danger">
-            <i data-lucide="user-minus" class="w-4 h-4"></i>
-          </button>
-        </td>
-      </tr>
-    `).join('');
-
-    lucide.createIcons();
-
-    $$('.input-elegant[data-field]').forEach(inp => {
-      inp.addEventListener('change', async e => {
-        const id = e.target.dataset.id;
-        const field = e.target.dataset.field;
-        const value = Number(e.target.value || 0);
-        await updateDoc(doc(db,'contributions', id), { [field]: value });
-        toast('💝 Contribuição atualizada!');
-        loadMembersAndContributions(currentMonth, currentYear);
-      });
-    });
-
-    $$('.delMember').forEach(btn => btn.addEventListener('click', async e => {
-      const memberId = e.target.closest('button').dataset.memberid;
-      if(!confirm('👥 Tem certeza que deseja excluir este membro e todas as contribuições dele?')) return;
-      await deleteDoc(doc(db,'members', memberId));
-      const q = query(collection(db,'contributions'), where('memberId','==', memberId));
-      const qSnap = await getDocs(q);
-      for(const d of qSnap.docs) await deleteDoc(doc(db,'contributions', d.id));
-      toast('👥 Membro excluído!');
-      loadMembersAndContributions(currentMonth, currentYear);
-    }));
-
-    const totalRcc = contributions.reduce((s,c)=> s + Number(c.rcc||0), 0);
-    const totalCaixa = contributions.reduce((s,c)=> s + Number(c.caixaExtra||0), 0);
-    $('#totalRcc').innerText = totalRcc.toFixed(2);
-    $('#totalCaixa').innerText = totalCaixa.toFixed(2);
+  function calculateContributionTotals() {
+    try {
+      const rccInputs = $$('.contribution-input[data-field="rcc"]');
+      const caixaInputs = $$('.contribution-input[data-field="caixaExtra"]');
+      
+      const totalRcc = rccInputs.reduce((sum, input) => sum + Number(input.value || 0), 0);
+      const totalCaixa = caixaInputs.reduce((sum, input) => sum + Number(input.value || 0), 0);
+      
+      if ($('#totalRcc')) $('#totalRcc').innerText = totalRcc.toFixed(2);
+      if ($('#totalCaixa')) $('#totalCaixa').innerText = totalCaixa.toFixed(2);
+      
+      console.log(`Totais de contribuições - RCC: ${totalRcc}, Caixa: ${totalCaixa}`);
+    } catch (error) {
+      console.error('Erro ao calcular totais:', error);
+    }
   }
 
   async function addMemberByName(name){
-    if(!name || !name.trim()) return toast('❌ Nome inválido');
-    await addDoc(collection(db,'members'), { name: name.trim().toUpperCase(), createdAt: serverTimestamp() });
-    toast('👥 Membro adicionado com sucesso!');
-    $('#newMemberName').value = '';
-    loadMembersAndContributions(currentMonth, currentYear);
+    if(!name || !name.trim()) {
+      toast('❌ Nome inválido');
+      return;
+    }
+    
+    try {
+      const memberName = name.trim().toUpperCase();
+      console.log(`Adicionando membro: ${memberName}`);
+      
+      await addDoc(collection(db,'members'), { 
+        name: memberName, 
+        createdAt: serverTimestamp() 
+      });
+      
+      toast('👥 Membro adicionado com sucesso!');
+      $('#newMemberName').value = '';
+      await loadMembersAndContributions(currentMonth, currentYear);
+    } catch (error) {
+      console.error('Erro ao adicionar membro:', error);
+      toast('❌ Erro ao adicionar membro');
+    }
   }
 
   // ======= Contabilidade anual =======
   async function buildAnnualReport(year){
-    year = Number(year);
-    const txSnap = await getDocs(collection(db,'transactions'));
-    const txs = txSnap.docs.map(d => d.data()).filter(t => Number(new Date(t.data).getFullYear()) === year || Number(t.ano) === year);
+    try {
+      year = Number(year);
+      console.log(`Gerando relatório anual para ${year}`);
+      
+      const txSnap = await getDocs(collection(db,'transactions'));
+      const txs = txSnap.docs.map(d => d.data()).filter(t => {
+        const txYear = Number(t.ano) || Number(new Date(t.data).getFullYear());
+        return txYear === year;
+      });
 
-    const monthly = Array.from({length:12}, (_,i) => ({ month: i+1, entradas:0, saidas:0 }));
-    for(const t of txs){
-      const mIndex = Number(t.mes) - 1;
-      if(t.type === 'entrada') monthly[mIndex].entradas += Number(t.value||0);
-      else monthly[mIndex].saidas += Number(t.value||0);
+      const monthly = Array.from({length:12}, (_,i) => ({ month: i+1, entradas:0, saidas:0 }));
+      for(const t of txs){
+        const mIndex = Number(t.mes) - 1;
+        if(mIndex >= 0 && mIndex < 12) {
+          if(t.type === 'entrada') monthly[mIndex].entradas += Number(t.value||0);
+          else monthly[mIndex].saidas += Number(t.value||0);
+        }
+      }
+
+      const cSnap = await getDocs(collection(db,'contributions'));
+      const contributions = cSnap.docs.map(d => d.data()).filter(c => Number(c.year) === year);
+
+      const rccByMonth = Array(12).fill(0);
+      const caixaByMonth = Array(12).fill(0);
+      for(const c of contributions){
+        const idx = Number(c.month) - 1;
+        if(idx >= 0 && idx < 12) {
+          rccByMonth[idx] += Number(c.rcc||0);
+          caixaByMonth[idx] += Number(c.caixaExtra||0);
+        }
+      }
+
+      const report = monthly.map((m, i) => ({
+        month: m.month,
+        entradas: m.entradas,
+        rcc: rccByMonth[i],
+        saidas: m.saidas,
+        caixaExtra: caixaByMonth[i],
+        resultado: (m.entradas + rccByMonth[i]) - m.saidas
+      }));
+
+      const totals = {
+        totalEntradas: report.reduce((s,r)=> s + r.entradas, 0),
+        totalRcc: report.reduce((s,r)=> s + r.rcc, 0),
+        totalSaidas: report.reduce((s,r)=> s + r.saidas, 0),
+        totalCaixaExtra: report.reduce((s,r)=> s + r.caixaExtra, 0),
+        lucroLiquido: report.reduce((s,r)=> s + r.resultado, 0)
+      };
+
+      if ($('#reportYear')) $('#reportYear').innerText = year;
+      
+      const tbody = $('#reportTableBody');
+      if (!tbody) {
+        console.error('Elemento #reportTableBody não encontrado');
+        return;
+      }
+      
+      const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+      
+      tbody.innerHTML = report.map(r => `
+        <tr class="hover:bg-gray-50 transition-colors">
+          <td class="p-4">
+            <div class="font-medium">${monthNames[r.month - 1]}</div>
+          </td>
+          <td class="p-4 text-right">
+            <div class="font-medium text-green-600">R$ ${r.entradas.toFixed(2)}</div>
+          </td>
+          <td class="p-4 text-right">
+            <div class="font-medium text-blue-600">R$ ${r.rcc.toFixed(2)}</div>
+          </td>
+          <td class="p-4 text-right">
+            <div class="font-medium text-red-600">R$ ${r.saidas.toFixed(2)}</div>
+          </td>
+          <td class="p-4 text-right">
+            <div class="font-medium text-yellow-600">R$ ${r.caixaExtra.toFixed(2)}</div>
+          </td>
+          <td class="p-4 text-right">
+            <div class="font-bold ${r.resultado >= 0 ? 'text-green-600' : 'text-red-600'}">
+              R$ ${r.resultado.toFixed(2)}
+            </div>
+          </td>
+        </tr>
+      `).join('');
+
+      lucide.createIcons();
+
+      // Atualizar totais anuais
+      if ($('#annualEntradas')) $('#annualEntradas').innerText = totals.totalEntradas.toFixed(2);
+      if ($('#annualRcc')) $('#annualRcc').innerText = totals.totalRcc.toFixed(2);
+      if ($('#annualSaidas')) $('#annualSaidas').innerText = totals.totalSaidas.toFixed(2);
+      if ($('#annualCaixa')) $('#annualCaixa').innerText = totals.totalCaixaExtra.toFixed(2);
+      if ($('#annualSaldo')) {
+        $('#annualSaldo').innerText = totals.lucroLiquido.toFixed(2);
+        $('#annualSaldo').className = totals.lucroLiquido >= 0 ? 'text-green-600 font-bold' : 'text-red-600 font-bold';
+      }
+
+      console.log('Relatório anual gerado com sucesso:', totals);
+    } catch (error) {
+      console.error('Erro ao gerar relatório anual:', error);
     }
-
-    const cSnap = await getDocs(collection(db,'contributions'));
-    const contributions = cSnap.docs.map(d => d.data()).filter(c => Number(c.year) === year);
-
-    const rccByMonth = Array(12).fill(0);
-    const caixaByMonth = Array(12).fill(0);
-    for(const c of contributions){
-      const idx = Number(c.month) - 1;
-      rccByMonth[idx] += Number(c.rcc||0);
-      caixaByMonth[idx] += Number(c.caixaExtra||0);
-    }
-
-    const report = monthly.map((m, i) => ({
-      month: m.month,
-      entradas: m.entradas,
-      rcc: rccByMonth[i],
-      saidas: m.saidas,
-      caixaExtra: caixaByMonth[i],
-      resultado: (m.entradas + rccByMonth[i]) - m.saidas
-    }));
-
-    const totals = {
-      totalEntradas: report.reduce((s,r)=> s + r.entradas, 0),
-      totalRcc: report.reduce((s,r)=> s + r.rcc, 0),
-      totalSaidas: report.reduce((s,r)=> s + r.saidas, 0),
-      totalCaixaExtra: report.reduce((s,r)=> s + r.caixaExtra, 0),
-      lucroLiquido: report.reduce((s,r)=> s + r.resultado, 0)
-    };
-
-    $('#reportYear').innerText = year;
-    const tbody = $('#reportTableBody');
-    const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-    
-    tbody.innerHTML = report.map(r => `
-      <tr class="hover:bg-gray-50 transition-colors">
-        <td class="p-4">
-          <div class="font-medium">${monthNames[r.month - 1]}</div>
-        </td>
-        <td class="p-4 text-right">
-          <div class="font-medium text-green-600">R$ ${r.entradas.toFixed(2)}</div>
-        </td>
-        <td class="p-4 text-right">
-          <div class="font-medium text-blue-600">R$ ${r.rcc.toFixed(2)}</div>
-        </td>
-        <td class="p-4 text-right">
-          <div class="font-medium text-red-600">R$ ${r.saidas.toFixed(2)}</div>
-        </td>
-        <td class="p-4 text-right">
-          <div class="font-medium text-yellow-600">R$ ${r.caixaExtra.toFixed(2)}</div>
-        </td>
-        <td class="p-4 text-right">
-          <div class="font-bold ${r.resultado >= 0 ? 'text-green-600' : 'text-red-600'}">
-            R$ ${r.resultado.toFixed(2)}
-          </div>
-        </td>
-      </tr>
-    `).join('') || `<tr><td colspan="6" class="p-8 text-center text-gray-500">
-      <div class="flex flex-col items-center gap-2">
-        <i data-lucide="calendar-x" class="w-8 h-8 text-gray-300"></i>
-        <div>Nenhum dado encontrado para ${year}</div>
-      </div>
-    </td></tr>`;
-
-    lucide.createIcons();
-
-    $('#annualEntradas').innerText = totals.totalEntradas.toFixed(2);
-    $('#annualRcc').innerText = totals.totalRcc.toFixed(2);
-    $('#annualSaidas').innerText = totals.totalSaidas.toFixed(2);
-    $('#annualCaixa').innerText = totals.totalCaixaExtra.toFixed(2);
-    $('#annualSaldo').innerText = totals.lucroLiquido.toFixed(2);
-    $('#annualSaldo').className = totals.lucroLiquido >= 0 ? 'text-green-600 font-bold' : 'text-red-600 font-bold';
   }
 
   // ======= Utility Functions =======
   function formatDate(dateStr) {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('pt-BR');
+    try {
+      if (!dateStr) return 'Data inválida';
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('pt-BR');
+    } catch (error) {
+      console.error('Erro ao formatar data:', error);
+      return 'Data inválida';
+    }
   }
 
   function toast(msg){
-    const t = document.createElement('div');
-    t.innerText = msg;
-    t.className = 'toast';
-    document.body.appendChild(t);
-    setTimeout(()=> {
-      t.style.animation = 'slideInRight 0.3s ease-out reverse';
-      setTimeout(()=> t.remove(), 300);
-    }, 300);
+    try {
+      // Remover toasts existentes
+      const existingToasts = $$('.toast');
+      existingToasts.forEach(t => t.remove());
+      
+      const t = document.createElement('div');
+      t.innerText = msg;
+      t.className = 'toast';
+      document.body.appendChild(t);
+      
+      setTimeout(()=> {
+        if (t.parentNode) {
+          t.style.animation = 'slideInRight 0.3s ease-out reverse';
+          setTimeout(()=> {
+            if (t.parentNode) t.remove();
+          }, 300);
+        }
+      }, 3000);
+    } catch (error) {
+      console.error('Erro ao exibir toast:', error);
+    }
   }
 
   // ======= UI Bindings =======
   window.addEventListener('DOMContentLoaded', async () => {
-    // CORREÇÃO: Mova a chamada para a função async
-    await ensurePresetMembersExist();
-
-    // Navigation
-    $$('.nav-item').forEach(btn => btn.addEventListener('click', e => {
-      const target = e.currentTarget.dataset.view;
-      $$('.nav-item').forEach(n => n.classList.remove('active'));
-      e.currentTarget.classList.add('active');
-      $$('#views > section').forEach(s => s.classList.add('hidden'));
-      $(`#${target}`).classList.remove('hidden');
-      $(`#${target}`).classList.add('fade-in');
-    }));
-
-    // Set initial view
-    $('#tesouraria').classList.remove('hidden');
-    $('#tesouraria').classList.add('fade-in');
-    $('[data-view="tesouraria"]').classList.add('active');
-
-    // Load initial data
-    loadTransactions(currentMonth, currentYear);
-    loadMembersAndContributions(currentMonth, currentYear);  
-    buildAnnualReport(currentYear);
-
-    // Transaction form
-    $('#txForm').addEventListener('submit', async e => {
-      e.preventDefault();
-      const type = $('#txType').value;
-      const desc = $('#txDesc').value.trim();
-      const val = $('#txValue').value;
-      const mes = $('#txMonth').value;
-      const ano = $('#txYear').value;
-      const data = $('#txDate').value;
+    try {
+      console.log('Inicializando aplicação...');
       
-      if(!desc || !val) return toast('❌ Preencha descrição e valor');
+      // Inicializar membros pré-definidos
+      await ensurePresetMembersExist();
+
+      // Navigation
+      $$('.nav-item').forEach(btn => btn.addEventListener('click', e => {
+        const target = e.currentTarget.dataset.view;
+        $$('.nav-item').forEach(n => n.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        $$('#views > section').forEach(s => s.classList.add('hidden'));
+        const targetElement = $(`#${target}`);
+        if (targetElement) {
+          targetElement.classList.remove('hidden');
+          targetElement.classList.add('fade-in');
+        }
+      }));
+
+      // Set initial view
+      const tesourariaSection = $('#tesouraria');
+      if (tesourariaSection) {
+        tesourariaSection.classList.remove('hidden');
+        tesourariaSection.classList.add('fade-in');
+      }
+      const tesourariaNav = $('[data-view="tesouraria"]');
+      if (tesourariaNav) {
+        tesourariaNav.classList.add('active');
+      }
+
+      // Load initial data
+      await loadTransactions(currentMonth, currentYear);
+      await loadMembersAndContributions(currentMonth, currentYear);  
+      await buildAnnualReport(currentYear);
+
+      // Transaction form
+      const txForm = $('#txForm');
+      if (txForm) {
+        txForm.addEventListener('submit', async e => {
+          e.preventDefault();
+          
+          const type = $('#txType')?.value || 'entrada';
+          const desc = $('#txDesc')?.value?.trim() || '';
+          const val = $('#txValue')?.value || '0';
+          const mes = $('#txMonth')?.value || currentMonth;
+          const ano = $('#txYear')?.value || currentYear;
+          const data = $('#txDate')?.value || new Date().toISOString().split('T')[0];
+          
+          if(!desc || !val || val === '0') {
+            toast('❌ Preencha descrição e valor');
+            return;
+          }
+          
+          await saveTransaction({ 
+            type, 
+            description: desc, 
+            value: val, 
+            month: mes, 
+            year: ano, 
+            date: data 
+          });
+          
+          // Reset form
+          txForm.reset();
+          
+          // Redefine valores padrão
+          const today = new Date();
+          if ($('#txMonth')) $('#txMonth').value = currentMonth;
+          if ($('#txYear')) $('#txYear').value = currentYear;
+          if ($('#txDate')) $('#txDate').value = today.toISOString().split('T')[0];
+        });
+      }
+
+      // Month/Year filters
+      const selectedMonth = $('#selectedMonth');
+      if (selectedMonth) {
+        selectedMonth.addEventListener('change', () => {
+          const month = $('#selectedMonth')?.value || currentMonth;
+          const year = $('#selectedYear')?.value || currentYear;
+          loadTransactions(month, year);
+        });
+      }
+
+      const selectedYear = $('#selectedYear');
+      if (selectedYear) {
+        selectedYear.addEventListener('change', () => {
+          const month = $('#selectedMonth')?.value || currentMonth;
+          const year = $('#selectedYear')?.value || currentYear;
+          loadTransactions(month, year);
+        });
+      }
+
+      const memberMonth = $('#memberMonth');
+      if (memberMonth) {
+        memberMonth.addEventListener('change', () => {
+          const month = $('#memberMonth')?.value || currentMonth;
+          const year = $('#memberYear')?.value || currentYear;
+          loadMembersAndContributions(month, year);
+        });
+      }
+
+      const memberYear = $('#memberYear');
+      if (memberYear) {
+        memberYear.addEventListener('change', () => {
+          const month = $('#memberMonth')?.value || currentMonth;
+          const year = $('#memberYear')?.value || currentYear;
+          loadMembersAndContributions(month, year);
+        });
+      }
+
+      const reportYearInput = $('#reportYearInput');
+      if (reportYearInput) {
+        reportYearInput.addEventListener('change', () => {
+          const year = $('#reportYearInput')?.value || currentYear;
+          buildAnnualReport(year);
+        });
+      }
+
+      // Add member
+      const btnAddMember = $('#btnAddMember');
+      if (btnAddMember) {
+        btnAddMember.addEventListener('click', () => {
+          const name = $('#newMemberName')?.value || '';
+          addMemberByName(name);
+        });
+      }
+
+      const newMemberName = $('#newMemberName');
+      if (newMemberName) {
+        newMemberName.addEventListener('keypress', e => {
+          if(e.key === 'Enter') {
+            const name = $('#newMemberName')?.value || '';
+            addMemberByName(name);
+          }
+        });
+      }
+
+      // Initialize Lucide icons
+      lucide.createIcons();
       
-      await saveTransaction({ type, description: desc, value: val, month: mes, year: ano, date: data });
-      // CORREÇÃO: Chamada para recarregar a lista de transações após salvar
-      loadTransactions(mes, ano); 
-      $('#txForm').reset();
-      $('#txMonth').value = currentMonth;
-      $('#txYear').value = currentYear;
-      $('#txDate').value = new Date().toISOString().split('T')[0];
-    });
-
-    // Month/Year filters
-    $('#selectedMonth').addEventListener('change', () => loadTransactions($('#selectedMonth').value, $('#selectedYear').value));
-    $('#selectedYear').addEventListener('change', () => loadTransactions($('#selectedMonth').value, $('#selectedYear').value));
-    $('#memberMonth').addEventListener('change', () => loadMembersAndContributions($('#memberMonth').value, $('#memberYear').value));
-    $('#memberYear').addEventListener('change', () => loadMembersAndContributions($('#memberMonth').value, $('#memberYear').value));
-    $('#reportYearInput').addEventListener('change', () => buildAnnualReport($('#reportYearInput').value));
-
-    // Add member
-    $('#btnAddMember').addEventListener('click', () => addMemberByName($('#newMemberName').value));
-    $('#newMemberName').addEventListener('keypress', e => {
-      if(e.key === 'Enter') addMemberByName($('#newMemberName').value);
-    });
-
-    // Initialize Lucide icons
-    lucide.createIcons();
+      console.log('Aplicação inicializada com sucesso!');
+    } catch (error) {
+      console.error('Erro ao inicializar aplicação:', error);
+      toast('❌ Erro ao inicializar aplicação');
+    }
   });
 </script>
 
@@ -786,7 +1079,7 @@
             
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Valor</label>
-              <input id="txValue" type="number" placeholder="0,00" step="0.01" class="input-elegant w-full" required />
+              <input id="txValue" type="number" placeholder="0,00" step="0.01" min="0.01" class="input-elegant w-full" required />
             </div>
             
             <div>
@@ -796,7 +1089,7 @@
             
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Ano</label>
-              <input id="txYear" type="number" min="2025" max="2030" class="input-elegant w-full" required />
+              <input id="txYear" type="number" min="2023" max="2030" class="input-elegant w-full" required />
             </div>
             
             <div>
@@ -827,7 +1120,7 @@
               </div>
               <div>
                 <label class="block text-xs font-medium text-gray-500 mb-1">Ano</label>
-                <input id="selectedYear" type="number" min="2025" max="2030" class="input-elegant w-24" />
+                <input id="selectedYear" type="number" min="2023" max="2030" class="input-elegant w-24" />
               </div>
             </div>
           </div>
@@ -843,7 +1136,16 @@
                   <th class="text-center">Ação</th>
                 </tr>
               </thead>
-              <tbody id="transactionsList"></tbody>
+              <tbody id="transactionsList">
+                <tr>
+                  <td colspan="5" class="p-8 text-center text-gray-500">
+                    <div class="flex flex-col items-center gap-2">
+                      <i data-lucide="loading" class="w-8 h-8 text-gray-300 animate-spin"></i>
+                      <div>Carregando transações...</div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
             </table>
           </div>
         </div>
@@ -927,7 +1229,7 @@
               </div>
               <div>
                 <label class="block text-xs font-medium text-gray-500 mb-1">Ano</label>
-                <input id="memberYear" type="number" min="2025" max="2030" class="input-elegant w-24" />
+                <input id="memberYear" type="number" min="2023" max="2030" class="input-elegant w-24" />
               </div>
             </div>
           </div>
@@ -942,7 +1244,16 @@
                   <th class="text-center">Ação</th>
                 </tr>
               </thead>
-              <tbody id="membersTableBody"></tbody>
+              <tbody id="membersTableBody">
+                <tr>
+                  <td colspan="4" class="p-8 text-center text-gray-500">
+                    <div class="flex flex-col items-center gap-2">
+                      <i data-lucide="loading" class="w-8 h-8 text-gray-300 animate-spin"></i>
+                      <div>Carregando membros...</div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
             </table>
           </div>
         </div>
@@ -962,7 +1273,7 @@
         <div class="card-elegant p-6">
           <div class="flex items-center gap-4">
             <label class="text-sm font-medium text-gray-700">Ano do relatório:</label>
-            <input id="reportYearInput" type="number" min="2025" max="2030" class="input-elegant w-24" />
+            <input id="reportYearInput" type="number" min="2023" max="2030" class="input-elegant w-24" />
             <span class="text-lg font-semibold text-gray-900">Relatório de <span id="reportYear">2025</span></span>
           </div>
         </div>
@@ -1008,7 +1319,16 @@
                   <th class="text-right">Resultado</th>
                 </tr>
               </thead>
-              <tbody id="reportTableBody"></tbody>
+              <tbody id="reportTableBody">
+                <tr>
+                  <td colspan="6" class="p-8 text-center text-gray-500">
+                    <div class="flex flex-col items-center gap-2">
+                      <i data-lucide="loading" class="w-8 h-8 text-gray-300 animate-spin"></i>
+                      <div>Carregando relatório...</div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
             </table>
           </div>
         </div>
@@ -1026,17 +1346,26 @@
     const currentYear = today.getFullYear();
     const todayStr = today.toISOString().split('T')[0];
     
-    document.getElementById('txMonth').value = currentMonth;
-    document.getElementById('txYear').value = currentYear;
-    document.getElementById('txDate').value = todayStr;
-    document.getElementById('selectedMonth').value = currentMonth;
-    document.getElementById('selectedYear').value = currentYear;
-    document.getElementById('memberMonth').value = currentMonth;
-    document.getElementById('memberYear').value = currentYear;
-    document.getElementById('reportYearInput').value = currentYear;
+    // Set default values
+    const elements = [
+      { id: 'txMonth', value: currentMonth },
+      { id: 'txYear', value: currentYear },
+      { id: 'txDate', value: todayStr },
+      { id: 'selectedMonth', value: currentMonth },
+      { id: 'selectedYear', value: currentYear },
+      { id: 'memberMonth', value: currentMonth },
+      { id: 'memberYear', value: currentYear },
+      { id: 'reportYearInput', value: currentYear }
+    ];
+    
+    elements.forEach(({ id, value }) => {
+      const element = document.getElementById(id);
+      if (element) {
+        element.value = value;
+      }
+    });
   });
 </script>
 
 </body>
 </html>
-
