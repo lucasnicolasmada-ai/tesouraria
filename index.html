@@ -349,16 +349,21 @@
   let currentYear = new Date().getFullYear();
 
   // ======= Transactions =======
-  async function saveTransaction({ type, description, value, month, year, date }){
+  async function saveTransaction({ type, description, value, date }){
     try {
-      console.log('Salvando transação:', { type, description, value, month, year, date });
+      // Extrair mês e ano da data
+      const dateObj = new Date(date);
+      const month = dateObj.getMonth() + 1;
+      const year = dateObj.getFullYear();
+      
+      console.log('Salvando transação:', { type, description, value, date, month, year });
       const col = collection(db,'transactions');
       await addDoc(col, {
         type: type || 'entrada',
         description: description || '',
         value: Number(value) || 0,
-        mes: Number(month) || currentMonth,
-        ano: Number(year) || currentYear,
+        mes: Number(month),
+        ano: Number(year),
         data: date || new Date().toISOString().split('T')[0],
         createdAt: serverTimestamp()
       });
@@ -866,8 +871,6 @@
           const type = $('#txType')?.value || 'entrada';
           const desc = $('#txDesc')?.value?.trim() || '';
           const val = $('#txValue')?.value || '0';
-          const mes = $('#txMonth')?.value || currentMonth;
-          const ano = $('#txYear')?.value || currentYear;
           const data = $('#txDate')?.value || new Date().toISOString().split('T')[0];
           
           if(!desc || !val || val === '0') {
@@ -875,12 +878,15 @@
             return;
           }
           
+          if(!data) {
+            toast('❌ Selecione uma data');
+            return;
+          }
+          
           await saveTransaction({ 
             type, 
             description: desc, 
             value: val, 
-            month: mes, 
-            year: ano, 
             date: data 
           });
           
@@ -889,8 +895,6 @@
           
           // Redefine valores padrão
           const today = new Date();
-          if ($('#txMonth')) $('#txMonth').value = currentMonth;
-          if ($('#txYear')) $('#txYear').value = currentYear;
           if ($('#txDate')) $('#txDate').value = today.toISOString().split('T')[0];
         });
       }
@@ -1063,7 +1067,7 @@
             Nova Transação
           </h2>
           
-          <form id="txForm" class="form-grid">
+          <form id="txForm" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
               <select id="txType" class="input-elegant w-full">
@@ -1078,18 +1082,8 @@
             </div>
             
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Valor</label>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Valor (R$)</label>
               <input id="txValue" type="number" placeholder="0,00" step="0.01" min="0.01" class="input-elegant w-full" required />
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Mês</label>
-              <input id="txMonth" type="number" min="1" max="12" class="input-elegant w-full" required />
-            </div>
-            
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Ano</label>
-              <input id="txYear" type="number" min="2023" max="2030" class="input-elegant w-full" required />
             </div>
             
             <div>
@@ -1097,7 +1091,7 @@
               <input id="txDate" type="date" class="input-elegant w-full" required />
             </div>
 
-            <div class="md:col-span-2">
+            <div class="md:col-span-4">
               <button type="submit" class="btn-success w-full">
                 <i data-lucide="save" class="w-4 h-4 mr-2"></i>
                 Salvar Transação
@@ -1348,8 +1342,6 @@
     
     // Set default values
     const elements = [
-      { id: 'txMonth', value: currentMonth },
-      { id: 'txYear', value: currentYear },
       { id: 'txDate', value: todayStr },
       { id: 'selectedMonth', value: currentMonth },
       { id: 'selectedYear', value: currentYear },
