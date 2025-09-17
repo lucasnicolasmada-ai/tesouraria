@@ -95,12 +95,15 @@
     .btn-secondary {
       background: white;
       color: var(--primary-600);
-      padding: 12px 24px;
-      border-radius: 12px;
+      padding: 10px 16px;
+      border-radius: 10px;
       font-weight: 600;
       border: 2px solid var(--primary-200);
       cursor: pointer;
       transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
     }
 
     .btn-secondary:hover {
@@ -299,7 +302,7 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import {
-    getFirestore, collection, addDoc, getDocs, query, where, orderBy, deleteDoc, doc,
+    getFirestore, collection, addDoc, getDocs, query, where, deleteDoc, doc,
     updateDoc, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
@@ -325,21 +328,31 @@
   const $ = sel => document.querySelector(sel);
   const $$ = sel => Array.from(document.querySelectorAll(sel));
 
+  // ======= Helpers de UI =======
+  function setActiveView(viewId){
+    $$('.nav-item').forEach(n => n.classList.remove('active'));
+    const nav = $(`.nav-item[data-view="${viewId}"]`);
+    if (nav) nav.classList.add('active');
+
+    $$('#views > section').forEach(s => s.classList.add('hidden'));
+    const section = $(`#${viewId}`);
+    if (section) {
+      section.classList.remove('hidden');
+      section.classList.add('fade-in');
+    }
+  }
+
   // ======= Firestore helpers =======
   async function ensurePresetMembersExist(){
     try {
-      console.log('Verificando membros pré-definidos...');
       const col = collection(db,'members');
       const snapshot = await getDocs(col);
       const existing = new Set(snapshot.docs.map(d => d.data().name));
-      
       for(const name of PRESET_MEMBERS){
         if(!existing.has(name)){
-          console.log(`Adicionando membro: ${name}`);
           await addDoc(col, { name, createdAt: serverTimestamp() });
         }
       }
-      console.log('Membros verificados com sucesso');
     } catch (error) {
       console.error('Erro ao verificar membros:', error);
     }
@@ -351,12 +364,10 @@
   // ======= Transactions =======
   async function saveTransaction({ type, description, value, date }){
     try {
-      // Extrair mês e ano da data
       const dateObj = new Date(date);
       const month = dateObj.getMonth() + 1;
       const year = dateObj.getFullYear();
       
-      console.log('Salvando transação:', { type, description, value, date, month, year });
       const col = collection(db,'transactions');
       await addDoc(col, {
         type: type || 'entrada',
@@ -368,7 +379,6 @@
         createdAt: serverTimestamp()
       });
       
-      console.log('Transação salva, recarregando dados...');
       await loadTransactions(month, year);
       toast('💰 Transação registrada com sucesso!');
     } catch (error) {
@@ -379,32 +389,34 @@
 
   async function loadTransactions(month = currentMonth, year = currentYear){
     try {
-      console.log(`Carregando transações para ${month}/${year}`);
       currentMonth = Number(month); 
       currentYear = Number(year);
-      
-      // Atualizar os campos de filtro
       if ($('#selectedMonth')) $('#selectedMonth').value = currentMonth;
       if ($('#selectedYear')) $('#selectedYear').value = currentYear;
 
       const col = collection(db,'transactions');
+      // Removido orderBy para evitar necessidade de índice composto
       const q = query(
         col, 
         where('mes','==', currentMonth), 
-        where('ano','==', currentYear), 
-        orderBy('createdAt','desc')
+        where('ano','==', currentYear)
       );
       
       const snap = await getDocs(q);
-      const rows = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      let rows = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       
-      console.log(`${rows.length} transações encontradas:`, rows);
+      // Ordenação no cliente por data (YYYY-MM-DD) desc; fallback por createdAt
+      rows.sort((a,b) => {
+        const ad = a.data || '';
+        const bd = b.data || '';
+        if (ad && bd) return bd.localeCompare(ad);
+        const at = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
+        const bt = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
+        return bt - at;
+      });
 
       const tbody = $('#transactionsList');
-      if (!tbody) {
-        console.error('Elemento #transactionsList não encontrado');
-        return;
-      }
+      if (!tbody) return;
 
       if (rows.length === 0) {
         tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-gray-500">
@@ -441,14 +453,12 @@
         `).join('');
       }
 
-      // Recriar os ícones após atualizar o HTML
       lucide.createIcons();
 
-      // Reativar os event listeners para os botões de deletar
       $$('.deleteTx').forEach(btn => btn.addEventListener('click', async e => {
-        const id = e.target.closest('button').dataset.id;
+        const id = e.target.closest('button')?.dataset.id;
+        if(!id) return;
         if(!confirm('🗑️ Tem certeza que deseja excluir esta transação?')) return;
-        
         try {
           await deleteDoc(doc(db,'transactions', id));
           toast('🗑️ Transação excluída!');
@@ -459,20 +469,16 @@
         }
       }));
 
-      // Calcular totais
       const entradas = rows.filter(r=> r.type === 'entrada').reduce((s,r)=> s + Number(r.value||0), 0);
       const saidas = rows.filter(r=> r.type === 'saida').reduce((s,r)=> s + Number(r.value||0), 0);
       const saldo = entradas - saidas;
       
-      // Atualizar elementos de totais
       if ($('#totalEntradas')) $('#totalEntradas').innerText = entradas.toFixed(2);
       if ($('#totalSaidas')) $('#totalSaidas').innerText = saidas.toFixed(2);
       if ($('#saldoAtual')) {
         $('#saldoAtual').innerText = saldo.toFixed(2);
         $('#saldoAtual').className = saldo >= 0 ? 'text-green-600 font-bold' : 'text-red-600 font-bold';
       }
-
-      console.log(`Totais calculados - Entradas: ${entradas}, Saídas: ${saidas}, Saldo: ${saldo}`);
     } catch (error) {
       console.error('Erro ao carregar transações:', error);
       const tbody = $('#transactionsList');
@@ -490,23 +496,17 @@
   // ======= Members & Contributions =======
   async function loadMembersAndContributions(month = currentMonth, year = currentYear){
     try {
-      console.log(`Carregando membros e contribuições para ${month}/${year}`);
       currentMonth = Number(month); 
       currentYear = Number(year);
       
-      // Atualizar campos de filtro
       if ($('#memberMonth')) $('#memberMonth').value = currentMonth;
       if ($('#memberYear')) $('#memberYear').value = currentYear;
 
-      // Carregar membros
       const memSnap = await getDocs(collection(db,'members'));
       const members = memSnap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b)=> a.name.localeCompare(b.name));
       
-      console.log(`${members.length} membros encontrados:`, members.map(m => m.name));
-      
       if ($('#membersCount')) $('#membersCount').innerText = members.length;
 
-      // Criar contribuições para membros que não têm no mês/ano atual
       for(const m of members){
         const q = query(
           collection(db,'contributions'), 
@@ -516,7 +516,6 @@
         );
         const snap = await getDocs(q);
         if(snap.empty){
-          console.log(`Criando contribuição para ${m.name}`);
           await addDoc(collection(db,'contributions'), {
             memberId: m.id,
             memberName: m.name,
@@ -529,25 +528,17 @@
         }
       }
 
-      // Carregar contribuições
       const q2 = query(
         collection(db,'contributions'), 
         where('month','==', currentMonth), 
         where('year','==', currentYear)
       );
       const snap2 = await getDocs(q2);
-      const contributions = snap2.docs.map(d => ({ id: d.id, ...d.data() }));
-      
-      // Ordenar por nome do membro
-      contributions.sort((a, b) => a.memberName.localeCompare(b.memberName));
-      
-      console.log(`${contributions.length} contribuições encontradas:`, contributions);
+      const contributions = snap2.docs.map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => a.memberName.localeCompare(b.memberName));
 
       const table = $('#membersTableBody');
-      if (!table) {
-        console.error('Elemento #membersTableBody não encontrado');
-        return;
-      }
+      if (!table) return;
 
       if (contributions.length === 0) {
         table.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-gray-500">
@@ -584,21 +575,16 @@
         `).join('');
       }
 
-      // Recriar ícones
       lucide.createIcons();
 
-      // Event listeners para inputs de contribuição
       $$('.contribution-input').forEach(inp => {
         inp.addEventListener('change', async e => {
           const id = e.target.dataset.id;
           const field = e.target.dataset.field;
           const value = Number(e.target.value || 0);
-          
           try {
-            console.log(`Atualizando ${field} para ${value} no documento ${id}`);
             await updateDoc(doc(db,'contributions', id), { [field]: value });
             toast('💝 Contribuição atualizada!');
-            // Recalcular totais
             calculateContributionTotals();
           } catch (error) {
             console.error('Erro ao atualizar contribuição:', error);
@@ -607,18 +593,15 @@
         });
       });
 
-      // Event listeners para deletar membros
       $$('.delMember').forEach(btn => btn.addEventListener('click', async e => {
-        const memberId = e.target.closest('button').dataset.memberid;
+        const memberId = e.target.closest('button')?.dataset.memberid;
+        if(!memberId) return;
         if(!confirm('👥 Tem certeza que deseja excluir este membro e todas as contribuições dele?')) return;
-        
         try {
           await deleteDoc(doc(db,'members', memberId));
           const q = query(collection(db,'contributions'), where('memberId','==', memberId));
           const qSnap = await getDocs(q);
-          for(const d of qSnap.docs) {
-            await deleteDoc(doc(db,'contributions', d.id));
-          }
+          for(const d of qSnap.docs) await deleteDoc(doc(db,'contributions', d.id));
           toast('👥 Membro excluído!');
           loadMembersAndContributions(currentMonth, currentYear);
         } catch (error) {
@@ -627,7 +610,6 @@
         }
       }));
 
-      // Calcular e exibir totais
       calculateContributionTotals();
 
     } catch (error) {
@@ -648,34 +630,20 @@
     try {
       const rccInputs = $$('.contribution-input[data-field="rcc"]');
       const caixaInputs = $$('.contribution-input[data-field="caixaExtra"]');
-      
       const totalRcc = rccInputs.reduce((sum, input) => sum + Number(input.value || 0), 0);
       const totalCaixa = caixaInputs.reduce((sum, input) => sum + Number(input.value || 0), 0);
-      
       if ($('#totalRcc')) $('#totalRcc').innerText = totalRcc.toFixed(2);
       if ($('#totalCaixa')) $('#totalCaixa').innerText = totalCaixa.toFixed(2);
-      
-      console.log(`Totais de contribuições - RCC: ${totalRcc}, Caixa: ${totalCaixa}`);
     } catch (error) {
       console.error('Erro ao calcular totais:', error);
     }
   }
 
   async function addMemberByName(name){
-    if(!name || !name.trim()) {
-      toast('❌ Nome inválido');
-      return;
-    }
-    
+    if(!name || !name.trim()) return toast('❌ Nome inválido');
     try {
       const memberName = name.trim().toUpperCase();
-      console.log(`Adicionando membro: ${memberName}`);
-      
-      await addDoc(collection(db,'members'), { 
-        name: memberName, 
-        createdAt: serverTimestamp() 
-      });
-      
+      await addDoc(collection(db,'members'), { name: memberName, createdAt: serverTimestamp() });
       toast('👥 Membro adicionado com sucesso!');
       $('#newMemberName').value = '';
       await loadMembersAndContributions(currentMonth, currentYear);
@@ -689,8 +657,6 @@
   async function buildAnnualReport(year){
     try {
       year = Number(year);
-      console.log(`Gerando relatório anual para ${year}`);
-      
       const txSnap = await getDocs(collection(db,'transactions'));
       const txs = txSnap.docs.map(d => d.data()).filter(t => {
         const txYear = Number(t.ano) || Number(new Date(t.data).getFullYear());
@@ -739,10 +705,7 @@
       if ($('#reportYear')) $('#reportYear').innerText = year;
       
       const tbody = $('#reportTableBody');
-      if (!tbody) {
-        console.error('Elemento #reportTableBody não encontrado');
-        return;
-      }
+      if (!tbody) return;
       
       const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
       
@@ -768,22 +731,34 @@
               R$ ${r.resultado.toFixed(2)}
             </div>
           </td>
+          <td class="p-4 text-right">
+            <button class="btn-secondary btnViewMonth" data-month="${r.month}" data-year="${year}">
+              <i data-lucide="eye" class="w-4 h-4"></i>
+              Visualizar
+            </button>
+          </td>
         </tr>
       `).join('');
 
       lucide.createIcons();
 
-      // Atualizar totais anuais
+      // Botões "Visualizar" de cada mês -> abre Tesouraria filtrada no mês/ano
+      $$('.btnViewMonth').forEach(btn => btn.addEventListener('click', () => {
+        const m = Number(btn.dataset.month);
+        const y = Number(btn.dataset.year);
+        if ($('#selectedMonth')) $('#selectedMonth').value = m;
+        if ($('#selectedYear')) $('#selectedYear').value = y;
+        setActiveView('tesouraria');
+        loadTransactions(m, y);
+      }));
+
       if ($('#annualEntradas')) $('#annualEntradas').innerText = totals.totalEntradas.toFixed(2);
       if ($('#annualRcc')) $('#annualRcc').innerText = totals.totalRcc.toFixed(2);
       if ($('#annualSaidas')) $('#annualSaidas').innerText = totals.totalSaidas.toFixed(2);
       if ($('#annualCaixa')) $('#annualCaixa').innerText = totals.totalCaixaExtra.toFixed(2);
       if ($('#annualSaldo')) {
         $('#annualSaldo').innerText = totals.lucroLiquido.toFixed(2);
-        $('#annualSaldo').className = totals.lucroLiquido >= 0 ? 'text-green-600 font-bold' : 'text-red-600 font-bold';
       }
-
-      console.log('Relatório anual gerado com sucesso:', totals);
     } catch (error) {
       console.error('Erro ao gerar relatório anual:', error);
     }
@@ -803,21 +778,15 @@
 
   function toast(msg){
     try {
-      // Remover toasts existentes
-      const existingToasts = $$('.toast');
-      existingToasts.forEach(t => t.remove());
-      
+      $$('.toast').forEach(t => t.remove());
       const t = document.createElement('div');
       t.innerText = msg;
       t.className = 'toast';
       document.body.appendChild(t);
-      
       setTimeout(()=> {
         if (t.parentNode) {
           t.style.animation = 'slideInRight 0.3s ease-out reverse';
-          setTimeout(()=> {
-            if (t.parentNode) t.remove();
-          }, 300);
+          setTimeout(()=> { if (t.parentNode) t.remove(); }, 300);
         }
       }, 3000);
     } catch (error) {
@@ -828,83 +797,41 @@
   // ======= UI Bindings =======
   window.addEventListener('DOMContentLoaded', async () => {
     try {
-      console.log('Inicializando aplicação...');
-      
-      // Inicializar membros pré-definidos
       await ensurePresetMembersExist();
 
-      // Navigation
       $$('.nav-item').forEach(btn => btn.addEventListener('click', e => {
         const target = e.currentTarget.dataset.view;
-        $$('.nav-item').forEach(n => n.classList.remove('active'));
-        e.currentTarget.classList.add('active');
-        $$('#views > section').forEach(s => s.classList.add('hidden'));
-        const targetElement = $(`#${target}`);
-        if (targetElement) {
-          targetElement.classList.remove('hidden');
-          targetElement.classList.add('fade-in');
-        }
+        setActiveView(target);
       }));
 
-      // Set initial view
-      const tesourariaSection = $('#tesouraria');
-      if (tesourariaSection) {
-        tesourariaSection.classList.remove('hidden');
-        tesourariaSection.classList.add('fade-in');
-      }
-      const tesourariaNav = $('[data-view="tesouraria"]');
-      if (tesourariaNav) {
-        tesourariaNav.classList.add('active');
-      }
+      setActiveView('tesouraria');
 
-      // Load initial data
       await loadTransactions(currentMonth, currentYear);
       await loadMembersAndContributions(currentMonth, currentYear);  
       await buildAnnualReport(currentYear);
 
-      // Transaction form
       const txForm = $('#txForm');
       if (txForm) {
         txForm.addEventListener('submit', async e => {
           e.preventDefault();
-          
           const type = $('#txType')?.value || 'entrada';
           const desc = $('#txDesc')?.value?.trim() || '';
           const val = $('#txValue')?.value || '0';
           const data = $('#txDate')?.value || new Date().toISOString().split('T')[0];
-          
-          if(!desc || !val || val === '0') {
-            toast('❌ Preencha descrição e valor');
-            return;
-          }
-          
-          if(!data) {
-            toast('❌ Selecione uma data');
-            return;
-          }
-          
-          await saveTransaction({ 
-            type, 
-            description: desc, 
-            value: val, 
-            date: data 
-          });
-          
-          // Reset form
+          if(!desc || !val || val === '0') return toast('❌ Preencha descrição e valor');
+          if(!data) return toast('❌ Selecione uma data');
+          await saveTransaction({ type, description: desc, value: val, date: data });
           txForm.reset();
-          
-          // Redefine valores padrão
           const today = new Date();
           if ($('#txDate')) $('#txDate').value = today.toISOString().split('T')[0];
         });
       }
 
-      // Month/Year filters
       const selectedMonth = $('#selectedMonth');
       if (selectedMonth) {
         selectedMonth.addEventListener('change', () => {
-          const month = $('#selectedMonth')?.value || currentMonth;
-          const year = $('#selectedYear')?.value || currentYear;
+          const month = Number($('#selectedMonth')?.value || currentMonth);
+          const year = Number($('#selectedYear')?.value || currentYear);
           loadTransactions(month, year);
         });
       }
@@ -912,8 +839,8 @@
       const selectedYear = $('#selectedYear');
       if (selectedYear) {
         selectedYear.addEventListener('change', () => {
-          const month = $('#selectedMonth')?.value || currentMonth;
-          const year = $('#selectedYear')?.value || currentYear;
+          const month = Number($('#selectedMonth')?.value || currentMonth);
+          const year = Number($('#selectedYear')?.value || currentYear);
           loadTransactions(month, year);
         });
       }
@@ -921,8 +848,8 @@
       const memberMonth = $('#memberMonth');
       if (memberMonth) {
         memberMonth.addEventListener('change', () => {
-          const month = $('#memberMonth')?.value || currentMonth;
-          const year = $('#memberYear')?.value || currentYear;
+          const month = Number($('#memberMonth')?.value || currentMonth);
+          const year = Number($('#memberYear')?.value || currentYear);
           loadMembersAndContributions(month, year);
         });
       }
@@ -930,8 +857,8 @@
       const memberYear = $('#memberYear');
       if (memberYear) {
         memberYear.addEventListener('change', () => {
-          const month = $('#memberMonth')?.value || currentMonth;
-          const year = $('#memberYear')?.value || currentYear;
+          const month = Number($('#memberMonth')?.value || currentMonth);
+          const year = Number($('#memberYear')?.value || currentYear);
           loadMembersAndContributions(month, year);
         });
       }
@@ -939,12 +866,11 @@
       const reportYearInput = $('#reportYearInput');
       if (reportYearInput) {
         reportYearInput.addEventListener('change', () => {
-          const year = $('#reportYearInput')?.value || currentYear;
+          const year = Number($('#reportYearInput')?.value || currentYear);
           buildAnnualReport(year);
         });
       }
 
-      // Add member
       const btnAddMember = $('#btnAddMember');
       if (btnAddMember) {
         btnAddMember.addEventListener('click', () => {
@@ -963,10 +889,7 @@
         });
       }
 
-      // Initialize Lucide icons
       lucide.createIcons();
-      
-      console.log('Aplicação inicializada com sucesso!');
     } catch (error) {
       console.error('Erro ao inicializar aplicação:', error);
       toast('❌ Erro ao inicializar aplicação');
@@ -1311,11 +1234,12 @@
                   <th class="text-right">Saídas</th>
                   <th class="text-right">Caixa Extra</th>
                   <th class="text-right">Resultado</th>
+                  <th class="text-right">Ação</th>
                 </tr>
               </thead>
               <tbody id="reportTableBody">
                 <tr>
-                  <td colspan="6" class="p-8 text-center text-gray-500">
+                  <td colspan="7" class="p-8 text-center text-gray-500">
                     <div class="flex flex-col items-center gap-2">
                       <i data-lucide="loading" class="w-8 h-8 text-gray-300 animate-spin"></i>
                       <div>Carregando relatório...</div>
@@ -1340,7 +1264,6 @@
     const currentYear = today.getFullYear();
     const todayStr = today.toISOString().split('T')[0];
     
-    // Set default values
     const elements = [
       { id: 'txDate', value: todayStr },
       { id: 'selectedMonth', value: currentMonth },
@@ -1352,9 +1275,7 @@
     
     elements.forEach(({ id, value }) => {
       const element = document.getElementById(id);
-      if (element) {
-        element.value = value;
-      }
+      if (element) element.value = value;
     });
   });
 </script>
