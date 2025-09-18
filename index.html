@@ -3,13 +3,16 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Tesouraria - Grupo de Oração</title>
+  <title>Tesouraria - Sistema de Gestão Financeira para Grupos de Oração</title>
+  <meta name="description" content="Sistema completo de gestão financeira para grupos de oração. Controle de tesouraria, contribuições de membros, relatórios mensais e anuais." />
+  <meta name="author" content="Tesouraria App" />
+  <meta name="keywords" content="tesouraria, grupo de oração, gestão financeira, contribuições, relatórios" />
   
   <script src="https://cdn.tailwindcss.com"></script>
-  
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 
   <style>
     :root {
@@ -21,14 +24,13 @@
       --primary-700: #0369a1;
       --primary-900: #0c4a6e;
       
-      --secondary-50: #fefce8;
-      --secondary-100: #fef3c7;
-      --secondary-500: #eab308;
-      --secondary-600: #ca8a04;
-      
       --success-50: #f0fdf4;
       --success-500: #22c55e;
       --success-600: #16a34a;
+      
+      --warning-50: #fefce8;
+      --warning-500: #eab308;
+      --warning-600: #ca8a04;
       
       --danger-50: #fef2f2;
       --danger-500: #ef4444;
@@ -84,6 +86,9 @@
       cursor: pointer;
       transition: all 0.3s ease;
       box-shadow: 0 4px 14px 0 rgba(2, 132, 199, 0.3);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
     }
 
     .btn-primary:hover {
@@ -95,7 +100,7 @@
     .btn-secondary {
       background: white;
       color: var(--primary-600);
-      padding: 10px 16px;
+      padding: 8px 16px;
       border-radius: 10px;
       font-weight: 600;
       border: 2px solid var(--primary-200);
@@ -104,6 +109,7 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
+      font-size: 14px;
     }
 
     .btn-secondary:hover {
@@ -121,6 +127,9 @@
       cursor: pointer;
       transition: all 0.3s ease;
       box-shadow: 0 4px 14px 0 rgba(34, 197, 94, 0.3);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
     }
 
     .btn-success:hover {
@@ -137,11 +146,34 @@
       border: 1px solid var(--danger-200);
       cursor: pointer;
       transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
 
     .btn-danger:hover {
       background: var(--danger-500);
       color: white;
+    }
+
+    .btn-warning {
+      background: linear-gradient(135deg, var(--warning-500), var(--warning-600));
+      color: white;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-weight: 600;
+      border: none;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 14px 0 rgba(234, 179, 8, 0.3);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-warning:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px 0 rgba(234, 179, 8, 0.4);
     }
 
     .input-elegant {
@@ -151,12 +183,28 @@
       font-size: 14px;
       transition: all 0.3s ease;
       background: white;
+      width: 100%;
     }
 
     .input-elegant:focus {
       outline: none;
       border-color: var(--primary-500);
       box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.1);
+    }
+
+    .input-small {
+      padding: 8px 12px;
+      border: 2px solid var(--neutral-200);
+      border-radius: 8px;
+      font-size: 14px;
+      transition: all 0.3s ease;
+      background: white;
+    }
+
+    .input-small:focus {
+      outline: none;
+      border-color: var(--primary-500);
+      box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
     }
 
     .sidebar {
@@ -186,8 +234,9 @@
     }
 
     .nav-item.active {
-      background: var(--primary-600);
+      background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
       color: white;
+      box-shadow: 0 4px 14px 0 rgba(2, 132, 199, 0.3);
     }
 
     .stat-card {
@@ -196,6 +245,19 @@
       padding: 24px;
       border-radius: 16px;
       box-shadow: 0 8px 32px rgba(2, 132, 199, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: -50%;
+      right: -20%;
+      width: 100px;
+      height: 100px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 50%;
     }
 
     .stat-card-success {
@@ -204,8 +266,13 @@
     }
 
     .stat-card-warning {
-      background: linear-gradient(135deg, var(--secondary-500), var(--secondary-600));
+      background: linear-gradient(135deg, var(--warning-500), var(--warning-600));
       box-shadow: 0 8px 32px rgba(234, 179, 8, 0.3);
+    }
+
+    .stat-card-danger {
+      background: linear-gradient(135deg, var(--danger-500), var(--danger-600));
+      box-shadow: 0 8px 32px rgba(239, 68, 68, 0.3);
     }
 
     .table-elegant {
@@ -213,6 +280,12 @@
       border-radius: 16px;
       overflow: hidden;
       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      overflow-x: auto;
+    }
+
+    .table-elegant table {
+      width: 100%;
+      min-width: 600px;
     }
 
     .table-elegant thead {
@@ -224,11 +297,14 @@
       font-weight: 600;
       color: var(--neutral-700);
       border-bottom: 1px solid var(--neutral-200);
+      text-align: left;
+      white-space: nowrap;
     }
 
     .table-elegant td {
       padding: 16px;
       border-bottom: 1px solid var(--neutral-100);
+      white-space: nowrap;
     }
 
     .table-elegant tbody tr:hover {
@@ -255,6 +331,7 @@
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
       z-index: 1000;
       animation: slideInRight 0.3s ease-out;
+      max-width: 350px;
     }
 
     @keyframes slideInRight {
@@ -264,16 +341,41 @@
 
     .mobile-header {
       display: none;
-      background: var(--primary-600);
+      background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
       color: white;
       padding: 16px;
       box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
     }
 
-    @media (max-width: 900px) {
+    .mobile-menu {
+      display: none;
+      background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
+      padding: 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .mobile-menu.active {
+      display: block;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    @media (max-width: 1024px) {
       .sidebar { display: none; }
       .mobile-header { display: block; }
       .main-content { padding: 16px; }
+      
+      .grid-responsive {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+      
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .stats-grid {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      }
     }
 
     .logo-area {
@@ -290,626 +392,138 @@
       align-items: end;
     }
 
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+    }
+
+    .badge-success {
+      background: var(--success-100);
+      color: var(--success-600);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .badge-danger {
+      background: var(--danger-50);
+      color: var(--danger-600);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-weight: bold;
+      font-size: 14px;
+    }
+
+    .loading-spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid var(--neutral-200);
+      border-top: 3px solid var(--primary-500);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    /* Responsividade melhorada para mobile */
     @media (max-width: 768px) {
-      .form-grid {
-        grid-template-columns: 1fr;
+      .table-elegant {
+        font-size: 14px;
+      }
+      
+      .table-elegant th,
+      .table-elegant td {
+        padding: 12px 8px;
+      }
+      
+      .input-elegant {
+        font-size: 16px;
+        /* Evita zoom no iOS */
+      }
+      
+      .btn-primary,
+      .btn-success,
+      .btn-warning {
+        padding: 14px 20px;
+        font-size: 16px;
+      }
+      
+      .stat-card {
+        padding: 20px;
+      }
+      
+      .card-elegant {
+        margin: 0 4px;
       }
     }
   </style>
 </head>
 <body>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import {
-    getFirestore, collection, addDoc, getDocs, query, where, deleteDoc, doc,
-    updateDoc, serverTimestamp
-  } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-  // ====== Firebase Config ======
-  const firebaseConfig = {
-    apiKey: "AIzaSyAgVA62x3kIlkefPfrb6ccA7yLln1ZyM8E",
-    authDomain: "tesouraria-bcded.firebaseapp.com",
-    projectId: "tesouraria-bcded",
-    storageBucket: "tesouraria-bcded.firebasestorage.app",
-    messagingSenderId: "373337720444",
-    appId: "1:373337720444:web:ccca6b0917e5e2054f6bf9",
-    measurementId: "G-52WF5DX59X"
-  };
-
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-
-  // PRESET MEMBERS
-  const PRESET_MEMBERS = [
-    'LUCAS NICOLAS','MILENA','TELMIRA','HENRIQUE','ROBERTA','NOEMI','VERA','MARLY','FLAVIO','ENIO','JESSICA','MARIA LIMA','MARIA DE JESUS','ELISANGELA','GERALDA','LUCAS OLIVEIRA'
-  ];
-
-  const $ = sel => document.querySelector(sel);
-  const $$ = sel => Array.from(document.querySelectorAll(sel));
-
-  // ======= Helpers de UI =======
-  function setActiveView(viewId){
-    $$('.nav-item').forEach(n => n.classList.remove('active'));
-    const nav = $(`.nav-item[data-view="${viewId}"]`);
-    if (nav) nav.classList.add('active');
-
-    $$('#views > section').forEach(s => s.classList.add('hidden'));
-    const section = $(`#${viewId}`);
-    if (section) {
-      section.classList.remove('hidden');
-      section.classList.add('fade-in');
-    }
-  }
-
-  // ======= Firestore helpers =======
-  async function ensurePresetMembersExist(){
-    try {
-      const col = collection(db,'members');
-      const snapshot = await getDocs(col);
-      const existing = new Set(snapshot.docs.map(d => d.data().name));
-      for(const name of PRESET_MEMBERS){
-        if(!existing.has(name)){
-          await addDoc(col, { name, createdAt: serverTimestamp() });
-        }
-      }
-    } catch (error) {
-      console.error('Erro ao verificar membros:', error);
-    }
-  }
-
-  let currentMonth = new Date().getMonth() + 1;
-  let currentYear = new Date().getFullYear();
-
-  // ======= Transactions =======
-  async function saveTransaction({ type, description, value, date }){
-    try {
-      const dateObj = new Date(date);
-      const month = dateObj.getMonth() + 1;
-      const year = dateObj.getFullYear();
-      
-      const col = collection(db,'transactions');
-      await addDoc(col, {
-        type: type || 'entrada',
-        description: description || '',
-        value: Number(value) || 0,
-        mes: Number(month),
-        ano: Number(year),
-        data: date || new Date().toISOString().split('T')[0],
-        createdAt: serverTimestamp()
-      });
-      
-      await loadTransactions(month, year);
-      toast('💰 Transação registrada com sucesso!');
-    } catch (error) {
-      console.error('Erro ao salvar transação:', error);
-      toast('❌ Erro ao salvar transação');
-    }
-  }
-
-  async function loadTransactions(month = currentMonth, year = currentYear){
-    try {
-      currentMonth = Number(month); 
-      currentYear = Number(year);
-      if ($('#selectedMonth')) $('#selectedMonth').value = currentMonth;
-      if ($('#selectedYear')) $('#selectedYear').value = currentYear;
-
-      const col = collection(db,'transactions');
-      // Removido orderBy para evitar necessidade de índice composto
-      const q = query(
-        col, 
-        where('mes','==', currentMonth), 
-        where('ano','==', currentYear)
-      );
-      
-      const snap = await getDocs(q);
-      let rows = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-      
-      // Ordenação no cliente por data (YYYY-MM-DD) desc; fallback por createdAt
-      rows.sort((a,b) => {
-        const ad = a.data || '';
-        const bd = b.data || '';
-        if (ad && bd) return bd.localeCompare(ad);
-        const at = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : 0;
-        const bt = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
-        return bt - at;
-      });
-
-      const tbody = $('#transactionsList');
-      if (!tbody) return;
-
-      if (rows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-gray-500">
-          <div class="flex flex-col items-center gap-2">
-            <i data-lucide="inbox" class="w-8 h-8 text-gray-300"></i>
-            <div>Nenhuma transação registrada para ${month}/${year}</div>
-          </div>
-        </td></tr>`;
-      } else {
-        tbody.innerHTML = rows.map(r => `
-          <tr class="hover:bg-gray-50 transition-colors">
-            <td class="p-4">
-              <div class="font-medium">${formatDate(r.data)}</div>
-            </td>
-            <td class="p-4">
-              <span class="inline-flex px-3 py-1 rounded-full text-xs font-medium ${r.type === 'entrada' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
-                ${r.type === 'entrada' ? '📈 Entrada' : '📉 Saída'}
-              </span>
-            </td>
-            <td class="p-4">
-              <div class="font-medium text-gray-900">${r.description || 'Sem descrição'}</div>
-            </td>
-            <td class="p-4 text-right">
-              <div class="font-semibold ${r.type === 'entrada' ? 'text-green-600' : 'text-red-600'}">
-                R$ ${Number(r.value || 0).toFixed(2)}
-              </div>
-            </td>
-            <td class="p-4 text-center">
-              <button data-id="${r.id}" class="deleteTx btn-danger">
-                <i data-lucide="trash-2" class="w-4 h-4"></i>
-              </button>
-            </td>
-          </tr>
-        `).join('');
-      }
-
-      lucide.createIcons();
-
-      $$('.deleteTx').forEach(btn => btn.addEventListener('click', async e => {
-        const id = e.target.closest('button')?.dataset.id;
-        if(!id) return;
-        if(!confirm('🗑️ Tem certeza que deseja excluir esta transação?')) return;
-        try {
-          await deleteDoc(doc(db,'transactions', id));
-          toast('🗑️ Transação excluída!');
-          loadTransactions(currentMonth, currentYear);
-        } catch (error) {
-          console.error('Erro ao excluir transação:', error);
-          toast('❌ Erro ao excluir transação');
-        }
-      }));
-
-      const entradas = rows.filter(r=> r.type === 'entrada').reduce((s,r)=> s + Number(r.value||0), 0);
-      const saidas = rows.filter(r=> r.type === 'saida').reduce((s,r)=> s + Number(r.value||0), 0);
-      const saldo = entradas - saidas;
-      
-      if ($('#totalEntradas')) $('#totalEntradas').innerText = entradas.toFixed(2);
-      if ($('#totalSaidas')) $('#totalSaidas').innerText = saidas.toFixed(2);
-      if ($('#saldoAtual')) {
-        $('#saldoAtual').innerText = saldo.toFixed(2);
-        $('#saldoAtual').className = saldo >= 0 ? 'text-green-600 font-bold' : 'text-red-600 font-bold';
-      }
-    } catch (error) {
-      console.error('Erro ao carregar transações:', error);
-      const tbody = $('#transactionsList');
-      if (tbody) {
-        tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-red-500">
-          <div class="flex flex-col items-center gap-2">
-            <i data-lucide="alert-circle" class="w-8 h-8"></i>
-            <div>Erro ao carregar transações</div>
-          </div>
-        </td></tr>`;
-      }
-    }
-  }
-
-  // ======= Members & Contributions =======
-  async function loadMembersAndContributions(month = currentMonth, year = currentYear){
-    try {
-      currentMonth = Number(month); 
-      currentYear = Number(year);
-      
-      if ($('#memberMonth')) $('#memberMonth').value = currentMonth;
-      if ($('#memberYear')) $('#memberYear').value = currentYear;
-
-      const memSnap = await getDocs(collection(db,'members'));
-      const members = memSnap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b)=> a.name.localeCompare(b.name));
-      
-      if ($('#membersCount')) $('#membersCount').innerText = members.length;
-
-      for(const m of members){
-        const q = query(
-          collection(db,'contributions'), 
-          where('memberId','==', m.id), 
-          where('month','==', currentMonth), 
-          where('year','==', currentYear)
-        );
-        const snap = await getDocs(q);
-        if(snap.empty){
-          await addDoc(collection(db,'contributions'), {
-            memberId: m.id,
-            memberName: m.name,
-            month: currentMonth,
-            year: currentYear,
-            rcc: 0,
-            caixaExtra: 0,
-            createdAt: serverTimestamp()
-          });
-        }
-      }
-
-      const q2 = query(
-        collection(db,'contributions'), 
-        where('month','==', currentMonth), 
-        where('year','==', currentYear)
-      );
-      const snap2 = await getDocs(q2);
-      const contributions = snap2.docs.map(d => ({ id: d.id, ...d.data() }))
-        .sort((a, b) => a.memberName.localeCompare(b.memberName));
-
-      const table = $('#membersTableBody');
-      if (!table) return;
-
-      if (contributions.length === 0) {
-        table.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-gray-500">
-          <div class="flex flex-col items-center gap-2">
-            <i data-lucide="users-x" class="w-8 h-8 text-gray-300"></i>
-            <div>Nenhum membro encontrado para ${month}/${year}</div>
-          </div>
-        </td></tr>`;
-      } else {
-        table.innerHTML = contributions.map(c => `
-          <tr class="hover:bg-gray-50 transition-colors">
-            <td class="p-4">
-              <div class="flex items-center gap-3">
-                <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                  ${(c.memberName || 'N').charAt(0)}
-                </div>
-                <div class="font-medium text-gray-900">${c.memberName || 'Nome não informado'}</div>
-              </div>
-            </td>
-            <td class="p-4 text-center">
-              <input data-id="${c.id}" data-field="rcc" type="number" min="0" step="0.01" value="${Number(c.rcc||0)}" 
-                     class="input-elegant w-28 text-center contribution-input" />
-            </td>
-            <td class="p-4 text-center">
-              <input data-id="${c.id}" data-field="caixaExtra" type="number" min="0" step="0.01" value="${Number(c.caixaExtra||0)}" 
-                     class="input-elegant w-28 text-center contribution-input" />
-            </td>
-            <td class="p-4 text-center">
-              <button data-memberid="${c.memberId}" class="delMember btn-danger">
-                <i data-lucide="user-minus" class="w-4 h-4"></i>
-              </button>
-            </td>
-          </tr>
-        `).join('');
-      }
-
-      lucide.createIcons();
-
-      $$('.contribution-input').forEach(inp => {
-        inp.addEventListener('change', async e => {
-          const id = e.target.dataset.id;
-          const field = e.target.dataset.field;
-          const value = Number(e.target.value || 0);
-          try {
-            await updateDoc(doc(db,'contributions', id), { [field]: value });
-            toast('💝 Contribuição atualizada!');
-            calculateContributionTotals();
-          } catch (error) {
-            console.error('Erro ao atualizar contribuição:', error);
-            toast('❌ Erro ao atualizar contribuição');
-          }
-        });
-      });
-
-      $$('.delMember').forEach(btn => btn.addEventListener('click', async e => {
-        const memberId = e.target.closest('button')?.dataset.memberid;
-        if(!memberId) return;
-        if(!confirm('👥 Tem certeza que deseja excluir este membro e todas as contribuições dele?')) return;
-        try {
-          await deleteDoc(doc(db,'members', memberId));
-          const q = query(collection(db,'contributions'), where('memberId','==', memberId));
-          const qSnap = await getDocs(q);
-          for(const d of qSnap.docs) await deleteDoc(doc(db,'contributions', d.id));
-          toast('👥 Membro excluído!');
-          loadMembersAndContributions(currentMonth, currentYear);
-        } catch (error) {
-          console.error('Erro ao excluir membro:', error);
-          toast('❌ Erro ao excluir membro');
-        }
-      }));
-
-      calculateContributionTotals();
-
-    } catch (error) {
-      console.error('Erro ao carregar membros e contribuições:', error);
-      const table = $('#membersTableBody');
-      if (table) {
-        table.innerHTML = `<tr><td colspan="4" class="p-8 text-center text-red-500">
-          <div class="flex flex-col items-center gap-2">
-            <i data-lucide="alert-circle" class="w-8 h-8"></i>
-            <div>Erro ao carregar membros</div>
-          </div>
-        </td></tr>`;
-      }
-    }
-  }
-
-  function calculateContributionTotals() {
-    try {
-      const rccInputs = $$('.contribution-input[data-field="rcc"]');
-      const caixaInputs = $$('.contribution-input[data-field="caixaExtra"]');
-      const totalRcc = rccInputs.reduce((sum, input) => sum + Number(input.value || 0), 0);
-      const totalCaixa = caixaInputs.reduce((sum, input) => sum + Number(input.value || 0), 0);
-      if ($('#totalRcc')) $('#totalRcc').innerText = totalRcc.toFixed(2);
-      if ($('#totalCaixa')) $('#totalCaixa').innerText = totalCaixa.toFixed(2);
-    } catch (error) {
-      console.error('Erro ao calcular totais:', error);
-    }
-  }
-
-  async function addMemberByName(name){
-    if(!name || !name.trim()) return toast('❌ Nome inválido');
-    try {
-      const memberName = name.trim().toUpperCase();
-      await addDoc(collection(db,'members'), { name: memberName, createdAt: serverTimestamp() });
-      toast('👥 Membro adicionado com sucesso!');
-      $('#newMemberName').value = '';
-      await loadMembersAndContributions(currentMonth, currentYear);
-    } catch (error) {
-      console.error('Erro ao adicionar membro:', error);
-      toast('❌ Erro ao adicionar membro');
-    }
-  }
-
-  // ======= Contabilidade anual =======
-  async function buildAnnualReport(year){
-    try {
-      year = Number(year);
-      const txSnap = await getDocs(collection(db,'transactions'));
-      const txs = txSnap.docs.map(d => d.data()).filter(t => {
-        const txYear = Number(t.ano) || Number(new Date(t.data).getFullYear());
-        return txYear === year;
-      });
-
-      const monthly = Array.from({length:12}, (_,i) => ({ month: i+1, entradas:0, saidas:0 }));
-      for(const t of txs){
-        const mIndex = Number(t.mes) - 1;
-        if(mIndex >= 0 && mIndex < 12) {
-          if(t.type === 'entrada') monthly[mIndex].entradas += Number(t.value||0);
-          else monthly[mIndex].saidas += Number(t.value||0);
-        }
-      }
-
-      const cSnap = await getDocs(collection(db,'contributions'));
-      const contributions = cSnap.docs.map(d => d.data()).filter(c => Number(c.year) === year);
-
-      const rccByMonth = Array(12).fill(0);
-      const caixaByMonth = Array(12).fill(0);
-      for(const c of contributions){
-        const idx = Number(c.month) - 1;
-        if(idx >= 0 && idx < 12) {
-          rccByMonth[idx] += Number(c.rcc||0);
-          caixaByMonth[idx] += Number(c.caixaExtra||0);
-        }
-      }
-
-      const report = monthly.map((m, i) => ({
-        month: m.month,
-        entradas: m.entradas,
-        rcc: rccByMonth[i],
-        saidas: m.saidas,
-        caixaExtra: caixaByMonth[i],
-        resultado: (m.entradas + rccByMonth[i]) - m.saidas
-      }));
-
-      const totals = {
-        totalEntradas: report.reduce((s,r)=> s + r.entradas, 0),
-        totalRcc: report.reduce((s,r)=> s + r.rcc, 0),
-        totalSaidas: report.reduce((s,r)=> s + r.saidas, 0),
-        totalCaixaExtra: report.reduce((s,r)=> s + r.caixaExtra, 0),
-        lucroLiquido: report.reduce((s,r)=> s + r.resultado, 0)
-      };
-
-      if ($('#reportYear')) $('#reportYear').innerText = year;
-      
-      const tbody = $('#reportTableBody');
-      if (!tbody) return;
-      
-      const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-      
-      tbody.innerHTML = report.map(r => `
-        <tr class="hover:bg-gray-50 transition-colors">
-          <td class="p-4">
-            <div class="font-medium">${monthNames[r.month - 1]}</div>
-          </td>
-          <td class="p-4 text-right">
-            <div class="font-medium text-green-600">R$ ${r.entradas.toFixed(2)}</div>
-          </td>
-          <td class="p-4 text-right">
-            <div class="font-medium text-blue-600">R$ ${r.rcc.toFixed(2)}</div>
-          </td>
-          <td class="p-4 text-right">
-            <div class="font-medium text-red-600">R$ ${r.saidas.toFixed(2)}</div>
-          </td>
-          <td class="p-4 text-right">
-            <div class="font-medium text-yellow-600">R$ ${r.caixaExtra.toFixed(2)}</div>
-          </td>
-          <td class="p-4 text-right">
-            <div class="font-bold ${r.resultado >= 0 ? 'text-green-600' : 'text-red-600'}">
-              R$ ${r.resultado.toFixed(2)}
-            </div>
-          </td>
-          <td class="p-4 text-right">
-            <button class="btn-secondary btnViewMonth" data-month="${r.month}" data-year="${year}">
-              <i data-lucide="eye" class="w-4 h-4"></i>
-              Visualizar
-            </button>
-          </td>
-        </tr>
-      `).join('');
-
-      lucide.createIcons();
-
-      // Botões "Visualizar" de cada mês -> abre Tesouraria filtrada no mês/ano
-      $$('.btnViewMonth').forEach(btn => btn.addEventListener('click', () => {
-        const m = Number(btn.dataset.month);
-        const y = Number(btn.dataset.year);
-        if ($('#selectedMonth')) $('#selectedMonth').value = m;
-        if ($('#selectedYear')) $('#selectedYear').value = y;
-        setActiveView('tesouraria');
-        loadTransactions(m, y);
-      }));
-
-      if ($('#annualEntradas')) $('#annualEntradas').innerText = totals.totalEntradas.toFixed(2);
-      if ($('#annualRcc')) $('#annualRcc').innerText = totals.totalRcc.toFixed(2);
-      if ($('#annualSaidas')) $('#annualSaidas').innerText = totals.totalSaidas.toFixed(2);
-      if ($('#annualCaixa')) $('#annualCaixa').innerText = totals.totalCaixaExtra.toFixed(2);
-      if ($('#annualSaldo')) {
-        $('#annualSaldo').innerText = totals.lucroLiquido.toFixed(2);
-      }
-    } catch (error) {
-      console.error('Erro ao gerar relatório anual:', error);
-    }
-  }
-
-  // ======= Utility Functions =======
-  function formatDate(dateStr) {
-    try {
-      if (!dateStr) return 'Data inválida';
-      const date = new Date(dateStr);
-      return date.toLocaleDateString('pt-BR');
-    } catch (error) {
-      console.error('Erro ao formatar data:', error);
-      return 'Data inválida';
-    }
-  }
-
-  function toast(msg){
-    try {
-      $$('.toast').forEach(t => t.remove());
-      const t = document.createElement('div');
-      t.innerText = msg;
-      t.className = 'toast';
-      document.body.appendChild(t);
-      setTimeout(()=> {
-        if (t.parentNode) {
-          t.style.animation = 'slideInRight 0.3s ease-out reverse';
-          setTimeout(()=> { if (t.parentNode) t.remove(); }, 300);
-        }
-      }, 3000);
-    } catch (error) {
-      console.error('Erro ao exibir toast:', error);
-    }
-  }
-
-  // ======= UI Bindings =======
-  window.addEventListener('DOMContentLoaded', async () => {
-    try {
-      await ensurePresetMembersExist();
-
-      $$('.nav-item').forEach(btn => btn.addEventListener('click', e => {
-        const target = e.currentTarget.dataset.view;
-        setActiveView(target);
-      }));
-
-      setActiveView('tesouraria');
-
-      await loadTransactions(currentMonth, currentYear);
-      await loadMembersAndContributions(currentMonth, currentYear);  
-      await buildAnnualReport(currentYear);
-
-      const txForm = $('#txForm');
-      if (txForm) {
-        txForm.addEventListener('submit', async e => {
-          e.preventDefault();
-          const type = $('#txType')?.value || 'entrada';
-          const desc = $('#txDesc')?.value?.trim() || '';
-          const val = $('#txValue')?.value || '0';
-          const data = $('#txDate')?.value || new Date().toISOString().split('T')[0];
-          if(!desc || !val || val === '0') return toast('❌ Preencha descrição e valor');
-          if(!data) return toast('❌ Selecione uma data');
-          await saveTransaction({ type, description: desc, value: val, date: data });
-          txForm.reset();
-          const today = new Date();
-          if ($('#txDate')) $('#txDate').value = today.toISOString().split('T')[0];
-        });
-      }
-
-      const selectedMonth = $('#selectedMonth');
-      if (selectedMonth) {
-        selectedMonth.addEventListener('change', () => {
-          const month = Number($('#selectedMonth')?.value || currentMonth);
-          const year = Number($('#selectedYear')?.value || currentYear);
-          loadTransactions(month, year);
-        });
-      }
-
-      const selectedYear = $('#selectedYear');
-      if (selectedYear) {
-        selectedYear.addEventListener('change', () => {
-          const month = Number($('#selectedMonth')?.value || currentMonth);
-          const year = Number($('#selectedYear')?.value || currentYear);
-          loadTransactions(month, year);
-        });
-      }
-
-      const memberMonth = $('#memberMonth');
-      if (memberMonth) {
-        memberMonth.addEventListener('change', () => {
-          const month = Number($('#memberMonth')?.value || currentMonth);
-          const year = Number($('#memberYear')?.value || currentYear);
-          loadMembersAndContributions(month, year);
-        });
-      }
-
-      const memberYear = $('#memberYear');
-      if (memberYear) {
-        memberYear.addEventListener('change', () => {
-          const month = Number($('#memberMonth')?.value || currentMonth);
-          const year = Number($('#memberYear')?.value || currentYear);
-          loadMembersAndContributions(month, year);
-        });
-      }
-
-      const reportYearInput = $('#reportYearInput');
-      if (reportYearInput) {
-        reportYearInput.addEventListener('change', () => {
-          const year = Number($('#reportYearInput')?.value || currentYear);
-          buildAnnualReport(year);
-        });
-      }
-
-      const btnAddMember = $('#btnAddMember');
-      if (btnAddMember) {
-        btnAddMember.addEventListener('click', () => {
-          const name = $('#newMemberName')?.value || '';
-          addMemberByName(name);
-        });
-      }
-
-      const newMemberName = $('#newMemberName');
-      if (newMemberName) {
-        newMemberName.addEventListener('keypress', e => {
-          if(e.key === 'Enter') {
-            const name = $('#newMemberName')?.value || '';
-            addMemberByName(name);
-          }
-        });
-      }
-
-      lucide.createIcons();
-    } catch (error) {
-      console.error('Erro ao inicializar aplicação:', error);
-      toast('❌ Erro ao inicializar aplicação');
-    }
-  });
-</script>
-
 <div class="mobile-header">
-  <div class="flex items-center gap-3">
-    <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-      <i data-lucide="church" class="w-5 h-5"></i>
+  <div class="flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
+        <i data-lucide="church" class="w-5 h-5"></i>
+      </div>
+      <div>
+        <h1 class="text-lg font-bold">Tesouraria</h1>
+        <p class="text-xs opacity-90">Grupo de Oração</p>
+      </div>
     </div>
-    <h1 class="text-lg font-bold">Tesouraria - Grupo de Oração</h1>
+    <button id="mobileMenuToggle" class="p-2 hover:bg-white/20 rounded-lg transition-colors">
+      <i data-lucide="menu" class="w-5 h-5"></i>
+    </button>
+  </div>
+</div>
+
+<div id="mobileMenu" class="mobile-menu">
+  <div class="space-y-2">
+    <div class="nav-item mobile-nav" data-view="tesouraria">
+      <i data-lucide="wallet" class="w-5 h-5"></i>
+      <span>Tesouraria</span>
+    </div>
+    <div class="nav-item mobile-nav" data-view="membros">
+      <i data-lucide="users" class="w-5 h-5"></i>
+      <span>Membros</span>
+    </div>
+    <div class="nav-item mobile-nav" data-view="contabilidade">
+      <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+      <span>Contabilidade</span>
+    </div>
   </div>
 </div>
 
 <div class="flex min-h-screen">
+  
   <aside class="sidebar">
     <div class="logo-area">
-      <div class="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-3">
+      <div class="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center mx-auto mb-3">
         <i data-lucide="church" class="w-7 h-7 text-white"></i>
       </div>
       <h1 class="text-xl font-bold text-gray-800">Tesouraria</h1>
@@ -917,7 +531,7 @@
     </div>
 
     <nav class="flex-1">
-      <div class="nav-item" data-view="tesouraria">
+      <div class="nav-item active" data-view="tesouraria">
         <i data-lucide="wallet" class="w-5 h-5"></i>
         <span>Tesouraria</span>
       </div>
@@ -935,7 +549,7 @@
   <main class="flex-1 main-content p-8">
     <div id="views">
 
-      <section id="tesouraria" class="hidden space-y-8">
+      <section id="tesouraria" class="space-y-8">
         <div class="flex items-center gap-4">
           <div class="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
             <i data-lucide="wallet" class="w-6 h-6 text-white"></i>
@@ -946,9 +560,9 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="stats-grid">
           <div class="stat-card stat-card-success">
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between relative z-10">
               <div>
                 <p class="text-green-100 text-sm font-medium">Entradas</p>
                 <p class="text-3xl font-bold">R$ <span id="totalEntradas">0.00</span></p>
@@ -960,7 +574,7 @@
           </div>
 
           <div class="stat-card stat-card-warning">
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between relative z-10">
               <div>
                 <p class="text-yellow-100 text-sm font-medium">Saídas</p>
                 <p class="text-3xl font-bold">R$ <span id="totalSaidas">0.00</span></p>
@@ -971,8 +585,8 @@
             </div>
           </div>
 
-          <div class="stat-card">
-            <div class="flex items-center justify-between">
+          <div class="stat-card" id="saldoCard">
+            <div class="flex items-center justify-between relative z-10">
               <div>
                 <p class="text-blue-100 text-sm font-medium">Saldo</p>
                 <p class="text-3xl font-bold">R$ <span id="saldoAtual">0.00</span></p>
@@ -990,10 +604,10 @@
             Nova Transação
           </h2>
           
-          <form id="txForm" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+          <form id="txForm" class="form-grid">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
-              <select id="txType" class="input-elegant w-full">
+              <select id="txType" class="input-elegant">
                 <option value="entrada">📈 Entrada</option>
                 <option value="saida">📉 Saída</option>
               </select>
@@ -1001,22 +615,22 @@
             
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Descrição</label>
-              <input id="txDesc" placeholder="Digite a descrição..." class="input-elegant w-full" required />
+              <input id="txDesc" placeholder="Digite a descrição..." class="input-elegant" required />
             </div>
             
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Valor (R$)</label>
-              <input id="txValue" type="number" placeholder="0,00" step="0.01" min="0.01" class="input-elegant w-full" required />
+              <input id="txValue" type="number" placeholder="0,00" step="0.01" min="0.01" class="input-elegant" required />
             </div>
             
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Data</label>
-              <input id="txDate" type="date" class="input-elegant w-full" required />
+              <input id="txDate" type="date" class="input-elegant" required />
             </div>
 
-            <div class="md:col-span-4">
+            <div style="grid-column: 1 / -1;">
               <button type="submit" class="btn-success w-full">
-                <i data-lucide="save" class="w-4 h-4 mr-2"></i>
+                <i data-lucide="save" class="w-4 h-4"></i>
                 Salvar Transação
               </button>
             </div>
@@ -1024,7 +638,7 @@
         </div>
 
         <div class="card-elegant p-6">
-          <div class="flex items-center justify-between mb-6">
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
             <h2 class="text-xl font-semibold text-gray-900 flex items-center gap-2">
               <i data-lucide="history" class="w-5 h-5 text-blue-600"></i>
               Histórico de Transações
@@ -1033,31 +647,31 @@
             <div class="flex gap-3">
               <div>
                 <label class="block text-xs font-medium text-gray-500 mb-1">Mês</label>
-                <input id="selectedMonth" type="number" min="1" max="12" class="input-elegant w-20" />
+                <input id="selectedMonth" type="number" min="1" max="12" class="input-small w-20 text-center" />
               </div>
               <div>
                 <label class="block text-xs font-medium text-gray-500 mb-1">Ano</label>
-                <input id="selectedYear" type="number" min="2023" max="2030" class="input-elegant w-24" />
+                <input id="selectedYear" type="number" min="2023" max="2030" class="input-small w-24 text-center" />
               </div>
             </div>
           </div>
           
           <div class="table-elegant">
-            <table class="w-full">
+            <table>
               <thead>
                 <tr>
-                  <th class="text-left">Data</th>
-                  <th class="text-left">Tipo</th>
-                  <th class="text-left">Descrição</th>
-                  <th class="text-right">Valor</th>
-                  <th class="text-center">Ação</th>
+                  <th>Data</th>
+                  <th>Tipo</th>
+                  <th>Descrição</th>
+                  <th style="text-align: right;">Valor</th>
+                  <th style="text-align: center;">Ação</th>
                 </tr>
               </thead>
               <tbody id="transactionsList">
                 <tr>
-                  <td colspan="5" class="p-8 text-center text-gray-500">
+                  <td colspan="5" style="padding: 32px; text-align: center; color: var(--neutral-500);">
                     <div class="flex flex-col items-center gap-2">
-                      <i data-lucide="loading" class="w-8 h-8 text-gray-300 animate-spin"></i>
+                      <div class="loading-spinner"></div>
                       <div>Carregando transações...</div>
                     </div>
                   </td>
@@ -1085,18 +699,18 @@
             Adicionar Membro
           </h2>
           
-          <div class="flex gap-4">
+          <div class="flex flex-col md:flex-row gap-4">
             <input id="newMemberName" placeholder="Nome do novo membro..." class="input-elegant flex-1" />
             <button id="btnAddMember" class="btn-primary">
-              <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
+              <i data-lucide="plus" class="w-4 h-4"></i>
               Adicionar
             </button>
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="stats-grid">
           <div class="stat-card">
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between relative z-10">
               <div>
                 <p class="text-blue-100 text-sm font-medium">Total de Membros</p>
                 <p class="text-3xl font-bold"><span id="membersCount">0</span></p>
@@ -1108,7 +722,7 @@
           </div>
 
           <div class="stat-card stat-card-success">
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between relative z-10">
               <div>
                 <p class="text-green-100 text-sm font-medium">Total RCC</p>
                 <p class="text-3xl font-bold">R$ <span id="totalRcc">0.00</span></p>
@@ -1120,7 +734,7 @@
           </div>
 
           <div class="stat-card stat-card-warning">
-            <div class="flex items-center justify-between">
+            <div class="flex items-center justify-between relative z-10">
               <div>
                 <p class="text-yellow-100 text-sm font-medium">Caixa Extra</p>
                 <p class="text-3xl font-bold">R$ <span id="totalCaixa">0.00</span></p>
@@ -1133,7 +747,7 @@
         </div>
 
         <div class="card-elegant p-6">
-          <div class="flex items-center justify-between mb-6">
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between mb-6 gap-4">
             <h2 class="text-xl font-semibold text-gray-900 flex items-center gap-2">
               <i data-lucide="list" class="w-5 h-5 text-blue-600"></i>
               Contribuições
@@ -1142,30 +756,40 @@
             <div class="flex gap-3">
               <div>
                 <label class="block text-xs font-medium text-gray-500 mb-1">Mês</label>
-                <input id="memberMonth" type="number" min="1" max="12" class="input-elegant w-20" />
+                <input id="memberMonth" type="number" min="1" max="12" class="input-small w-20 text-center" />
               </div>
               <div>
                 <label class="block text-xs font-medium text-gray-500 mb-1">Ano</label>
-                <input id="memberYear" type="number" min="2023" max="2030" class="input-elegant w-24" />
+                <input id="memberYear" type="number" min="2023" max="2030" class="input-small w-24 text-center" />
               </div>
             </div>
           </div>
           
           <div class="table-elegant">
-            <table class="w-full">
+            <table>
               <thead>
                 <tr>
-                  <th class="text-left">Membro</th>
-                  <th class="text-center">RCC (R$)</th>
-                  <th class="text-center">Caixa Extra (R$)</th>
-                  <th class="text-center">Ação</th>
+                  <th>Membro</th>
+                  <th style="text-align: center;">
+                    <div class="flex items-center justify-center gap-1">
+                      <i data-lucide="heart" class="w-4 h-4 text-red-500"></i>
+                      RCC (R$)
+                    </div>
+                  </th>
+                  <th style="text-align: center;">
+                    <div class="flex items-center justify-center gap-1">
+                      <i data-lucide="gift" class="w-4 h-4 text-yellow-500"></i>
+                      Caixa Extra (R$)
+                    </div>
+                  </th>
+                  <th style="text-align: center;">Ação</th>
                 </tr>
               </thead>
               <tbody id="membersTableBody">
                 <tr>
-                  <td colspan="4" class="p-8 text-center text-gray-500">
+                  <td colspan="4" style="padding: 32px; text-align: center; color: var(--neutral-500);">
                     <div class="flex flex-col items-center gap-2">
-                      <i data-lucide="loading" class="w-8 h-8 text-gray-300 animate-spin"></i>
+                      <div class="loading-spinner"></div>
                       <div>Carregando membros...</div>
                     </div>
                   </td>
@@ -1188,10 +812,16 @@
         </div>
 
         <div class="card-elegant p-6">
-          <div class="flex items-center gap-4">
+          <div class="flex flex-col md:flex-row md:items-center gap-4">
             <label class="text-sm font-medium text-gray-700">Ano do relatório:</label>
-            <input id="reportYearInput" type="number" min="2023" max="2030" class="input-elegant w-24" />
+            <input id="reportYearInput" type="number" min="2023" max="2030" class="input-small w-24 text-center" />
             <span class="text-lg font-semibold text-gray-900">Relatório de <span id="reportYear">2025</span></span>
+            <div class="md:ml-auto">
+              <button id="btnGeneratePDF" class="btn-success">
+                <i data-lucide="download" class="w-4 h-4"></i>
+                Gerar PDF
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1223,25 +853,24 @@
             <i data-lucide="calendar" class="w-5 h-5 text-blue-600"></i>
             Detalhamento Mensal
           </h2>
-          
           <div class="table-elegant">
-            <table class="w-full">
+            <table>
               <thead>
                 <tr>
-                  <th class="text-left">Mês</th>
-                  <th class="text-right">Entradas</th>
-                  <th class="text-right">RCC</th>
-                  <th class="text-right">Saídas</th>
-                  <th class="text-right">Caixa Extra</th>
-                  <th class="text-right">Resultado</th>
-                  <th class="text-right">Ação</th>
+                  <th>Mês</th>
+                  <th style="text-align: right;">Entradas</th>
+                  <th style="text-align: right;">RCC</th>
+                  <th style="text-align: right;">Saídas</th>
+                  <th style="text-align: right;">Caixa Extra</th>
+                  <th style="text-align: right;">Resultado</th>
+                  <th style="text-align: center;">Ação</th>
                 </tr>
               </thead>
               <tbody id="reportTableBody">
                 <tr>
-                  <td colspan="7" class="p-8 text-center text-gray-500">
+                  <td colspan="7" style="padding: 32px; text-align: center; color: var(--neutral-500);">
                     <div class="flex flex-col items-center gap-2">
-                      <i data-lucide="loading" class="w-8 h-8 text-gray-300 animate-spin"></i>
+                      <div class="loading-spinner"></div>
                       <div>Carregando relatório...</div>
                     </div>
                   </td>
@@ -1251,34 +880,719 @@
           </div>
         </div>
       </section>
-
     </div>
   </main>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics-compat.js"></script>
+
 <script>
-  // Initialize form values
-  document.addEventListener('DOMContentLoaded', () => {
-    const today = new Date();
-    const currentMonth = today.getMonth() + 1;
-    const currentYear = today.getFullYear();
-    const todayStr = today.toISOString().split('T')[0];
-    
-    const elements = [
-      { id: 'txDate', value: todayStr },
-      { id: 'selectedMonth', value: currentMonth },
-      { id: 'selectedYear', value: currentYear },
-      { id: 'memberMonth', value: currentMonth },
-      { id: 'memberYear', value: currentYear },
-      { id: 'reportYearInput', value: currentYear }
-    ];
-    
-    elements.forEach(({ id, value }) => {
-      const element = document.getElementById(id);
-      if (element) element.value = value;
+  // Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyAgVA62x3kIlkefPfrb6ccA7yLln1ZyM8E",
+    authDomain: "tesouraria-bcded.firebaseapp.com",
+    projectId: "tesouraria-bcded",
+    storageBucket: "tesouraria-bcded.firebasestorage.app",
+    messagingSenderId: "373337720444",
+    appId: "1:373337720444:web:ccca6b0917e5e2054f6bf9",
+    measurementId: "G-52WF5DX59X"
+  };
+
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  // ====== PRESET MEMBERS ======
+  const PRESET_MEMBERS = [
+    'LUCAS NICOLAS', 'MILENA', 'TELMIRA', 'HENRIQUE', 'ROBERTA', 'NOEMI', 'VERA', 'MARLY', 'FLAVIO', 'ENIO', 'JESSICA', 'MARIA LIMA', 'MARIA DE JESUS', 'ELISANGELA', 'GERALDA', 'LUCAS OLIVEIRA'
+  ];
+
+  // ====== DATE HELPERS ======
+  const formatDateForInput = (date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const parseInputDate = (dateString) => {
+    const [year, month, day] = dateString.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  };
+
+  const formatDateDisplay = (dateString) => {
+    try {
+      const date = parseInputDate(dateString);
+      return date.toLocaleDateString('pt-BR');
+    } catch {
+      return 'Data inválida';
+    }
+  };
+
+  const getMonthShortName = (month) => {
+    const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    return months[month - 1] || 'Mês inválido';
+  };
+
+  // ====== UI HELPERS ======
+  const $ = sel => document.querySelector(sel);
+  const $$ = sel => Array.from(document.querySelectorAll(sel));
+
+  function setActiveView(viewId) {
+    // Update navigation
+    $$('.nav-item').forEach(n => n.classList.remove('active'));
+    $$('.mobile-nav').forEach(n => n.classList.remove('active'));
+    const nav = $(`.nav-item[data-view="${viewId}"]`);
+    const mobileNav = $(`.mobile-nav[data-view="${viewId}"]`);
+    if (nav) nav.classList.add('active');
+    if (mobileNav) mobileNav.classList.add('active');
+
+    // Update sections
+    $$('#views > section').forEach(s => s.classList.add('hidden'));
+    const section = $(`#${viewId}`);
+    if (section) {
+      section.classList.remove('hidden');
+      section.classList.add('fade-in');
+    }
+    // Close mobile menu
+    $('#mobileMenu').classList.remove('active');
+    const toggleIcon = $('#mobileMenuToggle i');
+    if (toggleIcon) {
+      toggleIcon.setAttribute('data-lucide', 'menu');
+      lucide.createIcons();
+    }
+  }
+
+  function toast(msg) {
+    try {
+      $$('.toast').forEach(t => t.remove());
+      const t = document.createElement('div');
+      t.innerText = msg;
+      t.className = 'toast';
+      document.body.appendChild(t);
+      setTimeout(() => {
+        if (t.parentNode) {
+          t.style.animation = 'slideInRight 0.3s ease-out reverse';
+          setTimeout(() => {
+            if (t.parentNode) t.remove();
+          }, 300);
+        }
+      }, 3000);
+    } catch (error) {
+      console.error('Error showing toast:', error);
+    }
+  }
+
+  // ====== DATA LOADING AND RENDERING ======
+  const renderTransactions = (transactions) => {
+    const list = $('#transactionsList');
+    list.innerHTML = '';
+    if (transactions.length === 0) {
+      list.innerHTML = `
+        <tr>
+          <td colspan="5" style="padding: 32px; text-align: center; color: var(--neutral-500);">
+            Nenhuma transação encontrada.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    transactions.forEach(tx => {
+      const typeClass = tx.type === 'entrada' ? 'badge-success' : 'badge-danger';
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${formatDateDisplay(tx.date)}</td>
+        <td><span class="${typeClass}">${tx.type === 'entrada' ? 'Entrada' : 'Saída'}</span></td>
+        <td>${tx.description}</td>
+        <td style="text-align: right;">R$ ${parseFloat(tx.value).toFixed(2).replace('.', ',')}</td>
+        <td style="text-align: center;">
+          <button class="btn-danger" data-id="${tx.id}">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        </td>
+      `;
+      list.appendChild(row);
     });
+
+    // Re-create icons for new buttons
+    lucide.createIcons();
+    // Add event listeners for delete buttons
+    $$('#transactionsList .btn-danger').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        if (confirm('Tem certeza que deseja excluir esta transação?')) {
+          deleteTransaction(e.currentTarget.dataset.id);
+        }
+      });
+    });
+  };
+
+  const renderMembers = (members, contributions, month, year) => {
+    const tableBody = $('#membersTableBody');
+    tableBody.innerHTML = '';
+    if (members.length === 0) {
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="4" style="padding: 32px; text-align: center; color: var(--neutral-500);">
+            Nenhum membro encontrado.
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    members.forEach(member => {
+      const memberContributions = contributions.find(c => c.memberId === member.id) || {};
+      const contributionRCC = (memberContributions.contributions && memberContributions.contributions[month] && memberContributions.contributions[month][year] && memberContributions.contributions[month][year].rcc) || 0;
+      const contributionCaixaExtra = (memberContributions.contributions && memberContributions.contributions[month] && memberContributions.contributions[month][year] && memberContributions.contributions[month][year].caixaExtra) || 0;
+
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>
+          <div class="flex items-center gap-2">
+            <div class="avatar">${member.name.charAt(0)}</div>
+            <span>${member.name}</span>
+          </div>
+        </td>
+        <td style="text-align: center;">R$ ${parseFloat(contributionRCC).toFixed(2).replace('.', ',')}</td>
+        <td style="text-align: center;">R$ ${parseFloat(contributionCaixaExtra).toFixed(2).replace('.', ',')}</td>
+        <td style="text-align: center;">
+          <button class="btn-secondary btn-contribution" data-id="${member.id}" data-name="${member.name}" data-rcc="${contributionRCC}" data-caixa="${contributionCaixaExtra}">
+            <i data-lucide="edit" class="w-4 h-4"></i>
+            Editar
+          </button>
+          <button class="btn-danger btn-delete-member" data-id="${member.id}">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        </td>
+      `;
+      tableBody.appendChild(row);
+    });
+
+    // Re-create icons for new buttons
+    lucide.createIcons();
+    // Add event listeners for buttons
+    $$('.btn-contribution').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const memberId = e.currentTarget.dataset.id;
+        const memberName = e.currentTarget.dataset.name;
+        const currentRCC = parseFloat(e.currentTarget.dataset.rcc);
+        const currentCaixaExtra = parseFloat(e.currentTarget.dataset.caixa);
+
+        const rcc = prompt(`Insira o valor do RCC para ${memberName} no mês ${month}/${year}:`, currentRCC.toFixed(2));
+        if (rcc === null || isNaN(parseFloat(rcc))) {
+          toast('❌ Operação cancelada.');
+          return;
+        }
+
+        const caixaExtra = prompt(`Insira o valor do Caixa Extra para ${memberName} no mês ${month}/${year}:`, currentCaixaExtra.toFixed(2));
+        if (caixaExtra === null || isNaN(parseFloat(caixaExtra))) {
+          toast('❌ Operação cancelada.');
+          return;
+        }
+
+        addContribution(memberId, parseFloat(rcc), parseFloat(caixaExtra), month, year);
+      });
+    });
+
+    $$('.btn-delete-member').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        if (confirm('Tem certeza que deseja excluir este membro e todas as suas contribuições?')) {
+          deleteMember(e.currentTarget.dataset.id);
+        }
+      });
+    });
+  };
+
+  const loadTransactionsAndStats = async (month, year) => {
+    try {
+      const q = db.collection('transactions').where('year', '==', year).where('month', '==', month);
+      const snapshot = await q.get();
+
+      const transactions = [];
+      snapshot.forEach(doc => {
+        transactions.push({ id: doc.id, ...doc.data() });
+      });
+
+      renderTransactions(transactions);
+
+      const totalEntradas = transactions
+        .filter(tx => tx.type === 'entrada')
+        .reduce((sum, tx) => sum + parseFloat(tx.value), 0);
+      const totalSaidas = transactions
+        .filter(tx => tx.type === 'saida')
+        .reduce((sum, tx) => sum + parseFloat(tx.value), 0);
+      const saldo = totalEntradas - totalSaidas;
+
+      $('#totalEntradas').innerText = totalEntradas.toFixed(2).replace('.', ',');
+      $('#totalSaidas').innerText = totalSaidas.toFixed(2).replace('.', ',');
+      $('#saldoAtual').innerText = saldo.toFixed(2).replace('.', ',');
+
+      if (saldo < 0) {
+        $('#saldoCard').classList.remove('stat-card-success');
+        $('#saldoCard').classList.add('stat-card-danger');
+      } else {
+        $('#saldoCard').classList.remove('stat-card-danger');
+        $('#saldoCard').classList.add('stat-card-success');
+      }
+
+    } catch (error) {
+      console.error('Error loading transactions:', error);
+      toast('❌ Erro ao carregar transações.');
+    }
+  };
+
+  const loadMembersAndContributions = async (month, year) => {
+    try {
+      const membersRef = db.collection('members');
+      const membersSnapshot = await membersRef.get();
+      const members = membersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      renderMembers(members, members.map(m => ({ memberId: m.id, contributions: m.contributions })), month, year);
+
+      const totalRcc = members.reduce((sum, member) => {
+        const monthlyContributions = (member.contributions && member.contributions[month] && member.contributions[month][year]) || {};
+        return sum + (monthlyContributions.rcc || 0);
+      }, 0);
+
+      const totalCaixa = members.reduce((sum, member) => {
+        const monthlyContributions = (member.contributions && member.contributions[month] && member.contributions[month][year]) || {};
+        return sum + (monthlyContributions.caixaExtra || 0);
+      }, 0);
+
+      $('#membersCount').innerText = members.length;
+      $('#totalRcc').innerText = totalRcc.toFixed(2).replace('.', ',');
+      $('#totalCaixa').innerText = totalCaixa.toFixed(2).replace('.', ',');
+
+    } catch (error) {
+      console.error('Error loading members and contributions:', error);
+      toast('❌ Erro ao carregar membros e contribuições.');
+    }
+  };
+
+  const loadAnnualReport = async (year) => {
+    try {
+      const transactionsRef = db.collection('transactions').where('year', '==', year);
+      const membersRef = db.collection('members');
+
+      const [transactionsSnapshot, membersSnapshot] = await Promise.all([
+        transactionsRef.get(),
+        membersRef.get()
+      ]);
+
+      const transactions = transactionsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const members = membersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+      const monthlyData = {};
+      for (let i = 1; i <= 12; i++) {
+        monthlyData[i] = {
+          entradas: 0,
+          saidas: 0,
+          rcc: 0,
+          caixaExtra: 0,
+        };
+      }
+
+      transactions.forEach(tx => {
+        if (monthlyData[tx.month]) {
+          if (tx.type === 'entrada') {
+            monthlyData[tx.month].entradas += parseFloat(tx.value);
+          } else {
+            monthlyData[tx.month].saidas += parseFloat(tx.value);
+          }
+        }
+      });
+
+      members.forEach(member => {
+        for (const month in member.contributions) {
+          if (member.contributions[month][year]) {
+            const data = member.contributions[month][year];
+            if (monthlyData[month]) {
+              monthlyData[month].rcc += data.rcc || 0;
+              monthlyData[month].caixaExtra += data.caixaExtra || 0;
+            }
+          }
+        }
+      });
+
+      let totalAnnualEntradas = 0;
+      let totalAnnualSaidas = 0;
+      let totalAnnualRcc = 0;
+      let totalAnnualCaixaExtra = 0;
+
+      const reportTableBody = $('#reportTableBody');
+      reportTableBody.innerHTML = '';
+
+      for (let month = 1; month <= 12; month++) {
+        const data = monthlyData[month];
+        const resultado = data.entradas + data.rcc + data.caixaExtra - data.saidas;
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${getMonthShortName(month)}</td>
+          <td style="text-align: right;">R$ ${data.entradas.toFixed(2).replace('.', ',')}</td>
+          <td style="text-align: right;">R$ ${(data.rcc).toFixed(2).replace('.', ',')}</td>
+          <td style="text-align: right;">R$ ${data.saidas.toFixed(2).replace('.', ',')}</td>
+          <td style="text-align: right;">R$ ${(data.caixaExtra).toFixed(2).replace('.', ',')}</td>
+          <td style="text-align: right;">R$ ${resultado.toFixed(2).replace('.', ',')}</td>
+          <td style="text-align: center;">
+            <button class="btn-secondary btn-view-month" data-month="${month}" data-year="${year}">
+              <i data-lucide="eye" class="w-4 h-4"></i>
+            </button>
+          </td>
+        `;
+        reportTableBody.appendChild(row);
+
+        totalAnnualEntradas += data.entradas;
+        totalAnnualSaidas += data.saidas;
+        totalAnnualRcc += data.rcc;
+        totalAnnualCaixaExtra += data.caixaExtra;
+      }
+      
+      const annualSaldo = totalAnnualEntradas + totalAnnualRcc + totalAnnualCaixaExtra - totalAnnualSaidas;
+
+      $('#annualEntradas').innerText = totalAnnualEntradas.toFixed(2).replace('.', ',');
+      $('#annualSaidas').innerText = totalAnnualSaidas.toFixed(2).replace('.', ',');
+      $('#annualRcc').innerText = totalAnnualRcc.toFixed(2).replace('.', ',');
+      $('#annualCaixa').innerText = totalAnnualCaixaExtra.toFixed(2).replace('.', ',');
+      $('#annualSaldo').innerText = `R$ ${annualSaldo.toFixed(2).replace('.', ',')}`;
+
+      // Re-create icons and add listeners
+      lucide.createIcons();
+      $$('.btn-view-month').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const month = parseInt(e.currentTarget.dataset.month);
+          const year = parseInt(e.currentTarget.dataset.year);
+          $('#selectedMonth').value = month;
+          $('#selectedYear').value = year;
+          setActiveView('tesouraria');
+          loadTransactionsAndStats(month, year);
+        });
+      });
+
+    } catch (error) {
+      console.error('Error generating annual report:', error);
+      toast('❌ Erro ao gerar relatório anual.');
+    }
+  };
+
+  // ====== FIREBASE FUNCTIONS ======
+  const initializePresetMembers = async () => {
+    const membersRef = db.collection('members');
+    const snapshot = await membersRef.get();
+    const existingNames = new Set(snapshot.docs.map(doc => doc.data().name.toUpperCase()));
+
+    const batch = db.batch();
+    PRESET_MEMBERS.forEach(name => {
+      const upperName = name.toUpperCase();
+      if (!existingNames.has(upperName)) {
+        const newMemberRef = membersRef.doc();
+        batch.set(newMemberRef, {
+          name: upperName,
+          createdAt: new Date(),
+          contributions: {}
+        });
+      }
+    });
+
+    if (batch.length > 0) {
+      await batch.commit();
+    }
+  };
+  
+  const addTransaction = async (transaction) => {
+    try {
+      const newTransaction = {
+        type: transaction.type,
+        description: transaction.description,
+        value: parseFloat(transaction.value),
+        date: transaction.date,
+        year: parseInt(transaction.date.substring(0, 4)),
+        month: parseInt(transaction.date.substring(5, 7)),
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      };
+      await db.collection('transactions').add(newTransaction);
+      toast('✅ Transação salva com sucesso!');
+      await loadTransactionsAndStats(currentMonth, currentYear);
+    } catch (error) {
+      console.error('Error adding transaction:', error);
+      toast('❌ Erro ao salvar transação.');
+    }
+  };
+
+  const deleteTransaction = async (id) => {
+    try {
+      await db.collection('transactions').doc(id).delete();
+      toast('🗑️ Transação excluída!');
+      await loadTransactionsAndStats(currentMonth, currentYear);
+    } catch (error) {
+      console.error('Error deleting transaction:', error);
+      toast('❌ Erro ao excluir transação.');
+    }
+  };
+
+  const addMember = async (name) => {
+    const membersRef = db.collection('members');
+    const snapshot = await membersRef.where('name', '==', name.trim().toUpperCase()).get();
+
+    if (!snapshot.empty) {
+      toast('❌ Membro já existe.');
+      return;
+    }
+
+    try {
+      await membersRef.add({
+        name: name.trim().toUpperCase(),
+        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+        contributions: {}
+      });
+      toast('👥 Membro adicionado com sucesso!');
+      $('#newMemberName').value = '';
+      await loadMembersAndContributions(currentMonth, currentYear);
+    } catch (error) {
+      console.error('Error adding member:', error);
+      toast('❌ Erro ao adicionar membro.');
+    }
+  };
+
+  const deleteMember = async (id) => {
+    try {
+      await db.collection('members').doc(id).delete();
+      toast('🗑️ Membro e suas contribuições excluídos.');
+      await loadMembersAndContributions(currentMonth, currentYear);
+    } catch (error) {
+      console.error('Error deleting member:', error);
+      toast('❌ Erro ao excluir membro.');
+    }
+  };
+  
+  const addContribution = async (memberId, rcc, caixaExtra, month, year) => {
+    try {
+      const memberRef = db.collection('members').doc(memberId);
+      const memberDoc = await memberRef.get();
+      const contributions = memberDoc.data().contributions || {};
+      
+      if (!contributions[month]) contributions[month] = {};
+      if (!contributions[month][year]) contributions[month][year] = {};
+
+      contributions[month][year].rcc = rcc;
+      contributions[month][year].caixaExtra = caixaExtra;
+      
+      await memberRef.update({ contributions });
+      toast('✅ Contribuição salva com sucesso!');
+      await loadMembersAndContributions(currentMonth, currentYear);
+    } catch (error) {
+      console.error('Error adding contribution:', error);
+      toast('❌ Erro ao salvar contribuição.');
+    }
+  };
+
+  // ====== PDF GENERATOR ======
+  const generatePDF = async () => {
+    const reportYear = $('#reportYear').innerText;
+    const doc = new jspdf.jsPDF();
+    doc.text(`Relatório Anual de Tesouraria - ${reportYear}`, 14, 20);
+
+    const transactionsRef = db.collection('transactions').where('year', '==', parseInt(reportYear));
+    const membersRef = db.collection('members');
+
+    const [transactionsSnapshot, membersSnapshot] = await Promise.all([
+      transactionsRef.get(),
+      membersRef.get()
+    ]);
+
+    const transactions = transactionsSnapshot.docs.map(doc => ({ ...doc.data() }));
+    const members = membersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    const monthlyData = {};
+    for (let i = 1; i <= 12; i++) {
+      monthlyData[i] = {
+        entradas: 0,
+        saidas: 0,
+        rcc: 0,
+        caixaExtra: 0,
+      };
+    }
+
+    transactions.forEach(tx => {
+      if (monthlyData[tx.month]) {
+        if (tx.type === 'entrada') {
+          monthlyData[tx.month].entradas += parseFloat(tx.value);
+        } else {
+          monthlyData[tx.month].saidas += parseFloat(tx.value);
+        }
+      }
+    });
+
+    members.forEach(member => {
+      for (const month in member.contributions) {
+        if (member.contributions[month][reportYear]) {
+          const data = member.contributions[month][reportYear];
+          if (monthlyData[month]) {
+            monthlyData[month].rcc += data.rcc || 0;
+            monthlyData[month].caixaExtra += data.caixaExtra || 0;
+          }
+        }
+      }
+    });
+
+    const data = Object.keys(monthlyData).map(month => {
+      const d = monthlyData[month];
+      const resultado = d.entradas + d.rcc + d.caixaExtra - d.saidas;
+      return [
+        getMonthShortName(parseInt(month)),
+        `R$ ${d.entradas.toFixed(2).replace('.', ',')}`,
+        `R$ ${d.rcc.toFixed(2).replace('.', ',')}`,
+        `R$ ${d.saidas.toFixed(2).replace('.', ',')}`,
+        `R$ ${d.caixaExtra.toFixed(2).replace('.', ',')}`,
+        `R$ ${resultado.toFixed(2).replace('.', ',')}`
+      ];
+    });
+
+    doc.autoTable({
+      head: [['Mês', 'Entradas', 'RCC', 'Saídas', 'Caixa Extra', 'Resultado']],
+      body: data,
+      startY: 30
+    });
+
+    doc.save(`relatorio-tesouraria-${reportYear}.pdf`);
+  };
+
+  // ====== INITIALIZATION ======
+  let currentMonth = new Date().getMonth() + 1;
+  let currentYear = new Date().getFullYear();
+
+  document.addEventListener('DOMContentLoaded', () => {
+    try {
+      // Setup initial view
+      const urlParams = new URLSearchParams(window.location.search);
+      const initialView = urlParams.get('view') || 'tesouraria';
+      setActiveView(initialView);
+
+      // Mobile menu toggle
+      $('#mobileMenuToggle')?.addEventListener('click', () => {
+        const menu = $('#mobileMenu');
+        const toggleIcon = $('#mobileMenuToggle i');
+        if (menu.classList.contains('active')) {
+          menu.classList.remove('active');
+          toggleIcon.setAttribute('data-lucide', 'menu');
+        } else {
+          menu.classList.add('active');
+          toggleIcon.setAttribute('data-lucide', 'x');
+        }
+        lucide.createIcons();
+      });
+
+      // Navigation listeners
+      $$('.nav-item').forEach(nav => {
+        nav.addEventListener('click', () => {
+          const viewId = nav.dataset.view;
+          setActiveView(viewId);
+        });
+      });
+
+      // Transaction form submit
+      $('#txForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const transaction = {
+          type: $('#txType').value,
+          description: $('#txDesc').value,
+          value: $('#txValue').value,
+          date: $('#txDate').value
+        };
+        await addTransaction(transaction);
+        $('#txForm').reset();
+        $('#txDate').value = formatDateForInput(new Date());
+      });
+
+      // Month/Year filters for Tesouraria
+      const filterTransactions = async () => {
+        const month = parseInt($('#selectedMonth').value);
+        const year = parseInt($('#selectedYear').value);
+        if (!isNaN(month) && !isNaN(year)) {
+          currentMonth = month;
+          currentYear = year;
+          await loadTransactionsAndStats(month, year);
+        }
+      };
+      $('#selectedMonth')?.addEventListener('change', filterTransactions);
+      $('#selectedYear')?.addEventListener('change', filterTransactions);
+
+      // Month/Year filters for Members
+      const filterMembers = async () => {
+        const month = parseInt($('#memberMonth').value);
+        const year = parseInt($('#memberYear').value);
+        if (!isNaN(month) && !isNaN(year)) {
+          currentMonth = month;
+          currentYear = year;
+          await loadMembersAndContributions(month, year);
+        }
+      };
+      $('#memberMonth')?.addEventListener('change', filterMembers);
+      $('#memberYear')?.addEventListener('change', filterMembers);
+
+      // Add member
+      const addMemberHandler = async () => {
+        const name = $('#newMemberName').value.trim();
+        if (name) {
+          await addMember(name);
+          $('#newMemberName').value = '';
+        } else {
+          toast('Por favor, insira um nome.');
+        }
+      };
+
+      $('#btnAddMember')?.addEventListener('click', addMemberHandler);
+      $('#newMemberName')?.addEventListener('keypress', e => {
+        if(e.key === 'Enter') addMemberHandler();
+      });
+
+      // Annual Report
+      const handleReportYearChange = async () => {
+        const year = parseInt($('#reportYearInput').value);
+        if (!isNaN(year)) {
+          $('#reportYear').innerText = year;
+          await loadAnnualReport(year);
+        }
+      };
+      $('#reportYearInput')?.addEventListener('change', handleReportYearChange);
+
+      // Generate PDF
+      $('#btnGeneratePDF')?.addEventListener('click', generatePDF);
+
+      // Initialize form values
+      const today = new Date();
+      const todayStr = formatDateForInput(today);
+      
+      const elements = [
+        { id: 'txDate', value: todayStr },
+        { id: 'selectedMonth', value: currentMonth },
+        { id: 'selectedYear', value: currentYear },
+        { id: 'memberMonth', value: currentMonth },
+        { id: 'memberYear', value: currentYear },
+        { id: 'reportYearInput', value: currentYear }
+      ];
+      
+      elements.forEach(({ id, value }) => {
+        const element = document.getElementById(id);
+        if (element) element.value = value;
+      });
+
+      // Initialize icons and data
+      lucide.createIcons();
+      await initializePresetMembers();
+      await Promise.all([
+        loadTransactionsAndStats(currentMonth, currentYear),
+        loadMembersAndContributions(currentMonth, currentYear),
+        loadAnnualReport(currentYear)
+      ]);
+      
+    } catch (error) {
+      console.error('Error initializing application:', error);
+    }
   });
 </script>
-
 </body>
 </html>
