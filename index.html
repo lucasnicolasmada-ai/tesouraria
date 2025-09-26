@@ -84,6 +84,10 @@
       cursor: pointer;
       transition: all 0.3s ease;
       box-shadow: 0 4px 14px 0 rgba(2, 132, 199, 0.3);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
     }
 
     .btn-primary:hover {
@@ -121,6 +125,10 @@
       cursor: pointer;
       transition: all 0.3s ease;
       box-shadow: 0 4px 14px 0 rgba(34, 197, 94, 0.3);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
     }
 
     .btn-success:hover {
@@ -137,6 +145,9 @@
       border: 1px solid var(--danger-200);
       cursor: pointer;
       transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     }
 
     .btn-danger:hover {
@@ -151,6 +162,7 @@
       font-size: 14px;
       transition: all 0.3s ease;
       background: white;
+      width: 100%;
     }
 
     .input-elegant:focus {
@@ -213,6 +225,7 @@
       border-radius: 16px;
       overflow: hidden;
       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      overflow-x: auto;
     }
 
     .table-elegant thead {
@@ -224,11 +237,13 @@
       font-weight: 600;
       color: var(--neutral-700);
       border-bottom: 1px solid var(--neutral-200);
+      white-space: nowrap;
     }
 
     .table-elegant td {
       padding: 16px;
       border-bottom: 1px solid var(--neutral-100);
+      white-space: nowrap;
     }
 
     .table-elegant tbody tr:hover {
@@ -255,6 +270,7 @@
       box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
       z-index: 1000;
       animation: slideInRight 0.3s ease-out;
+      max-width: 320px;
     }
 
     @keyframes slideInRight {
@@ -268,12 +284,88 @@
       color: white;
       padding: 16px;
       box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+      position: sticky;
+      top: 0;
+      z-index: 50;
     }
 
-    @media (max-width: 900px) {
+    .mobile-nav {
+      display: none;
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: white;
+      border-top: 1px solid var(--neutral-200);
+      padding: 12px;
+      box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.1);
+      z-index: 50;
+    }
+
+    .mobile-nav-item {
+      flex: 1;
+      padding: 12px 8px;
+      text-align: center;
+      cursor: pointer;
+      border-radius: 12px;
+      transition: all 0.3s ease;
+      color: var(--neutral-600);
+      font-size: 12px;
+      font-weight: 500;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .mobile-nav-item:hover, .mobile-nav-item.active {
+      background: var(--primary-50);
+      color: var(--primary-600);
+    }
+
+    @media (max-width: 1024px) {
       .sidebar { display: none; }
       .mobile-header { display: block; }
-      .main-content { padding: 16px; }
+      .mobile-nav { display: flex; }
+      .main-content { 
+        padding: 16px; 
+        padding-bottom: 80px;
+      }
+      
+      .grid {
+        grid-template-columns: 1fr !important;
+      }
+      
+      .md\\:grid-cols-3 {
+        grid-template-columns: 1fr !important;
+      }
+      
+      .md\\:grid-cols-4 {
+        grid-template-columns: 1fr 1fr !important;
+      }
+      
+      .stat-card {
+        padding: 16px;
+      }
+      
+      .card-elegant {
+        padding: 16px !important;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .md\\:grid-cols-4 {
+        grid-template-columns: 1fr !important;
+      }
+      
+      .table-elegant {
+        font-size: 14px;
+      }
+      
+      .table-elegant th,
+      .table-elegant td {
+        padding: 8px;
+      }
     }
 
     .logo-area {
@@ -294,6 +386,29 @@
       .form-grid {
         grid-template-columns: 1fr;
       }
+    }
+
+    /* Melhorias de acessibilidade e usabilidade */
+    .btn-primary:disabled,
+    .btn-success:disabled,
+    .btn-secondary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .loading {
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    /* Estilos para campos obrigatórios */
+    .input-elegant:required:invalid {
+      border-color: var(--danger-300);
+    }
+
+    .input-elegant:required:valid {
+      border-color: var(--success-300);
     }
   </style>
 </head>
@@ -331,8 +446,12 @@
   // ======= Helpers de UI =======
   function setActiveView(viewId){
     $$('.nav-item').forEach(n => n.classList.remove('active'));
+    $$('.mobile-nav-item').forEach(n => n.classList.remove('active'));
+    
     const nav = $(`.nav-item[data-view="${viewId}"]`);
+    const mobileNav = $(`.mobile-nav-item[data-view="${viewId}"]`);
     if (nav) nav.classList.add('active');
+    if (mobileNav) mobileNav.classList.add('active');
 
     $$('#views > section').forEach(s => s.classList.add('hidden'));
     const section = $(`#${viewId}`);
@@ -340,6 +459,20 @@
       section.classList.remove('hidden');
       section.classList.add('fade-in');
     }
+  }
+
+  // ======= Correção da função de data =======
+  function parseLocalDate(dateString) {
+    // Força a interpretação da data como local, não UTC
+    const parts = dateString.split('-');
+    return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+  }
+
+  function formatDateForInput(date) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   // ======= Firestore helpers =======
@@ -364,7 +497,10 @@
   // ======= Transactions =======
   async function saveTransaction({ type, description, value, date }){
     try {
-      const dateObj = new Date(date);
+      setLoading(true);
+      
+      // Usa a função corrigida de parseamento de data
+      const dateObj = parseLocalDate(date);
       const month = dateObj.getMonth() + 1;
       const year = dateObj.getFullYear();
       
@@ -375,7 +511,7 @@
         value: Number(value) || 0,
         mes: Number(month),
         ano: Number(year),
-        data: date || new Date().toISOString().split('T')[0],
+        data: date, // Mantém a data original como string
         createdAt: serverTimestamp()
       });
       
@@ -384,18 +520,21 @@
     } catch (error) {
       console.error('Erro ao salvar transação:', error);
       toast('❌ Erro ao salvar transação');
+    } finally {
+      setLoading(false);
     }
   }
 
   async function loadTransactions(month = currentMonth, year = currentYear){
     try {
+      setLoading(true);
+      
       currentMonth = Number(month); 
       currentYear = Number(year);
       if ($('#selectedMonth')) $('#selectedMonth').value = currentMonth;
       if ($('#selectedYear')) $('#selectedYear').value = currentYear;
 
       const col = collection(db,'transactions');
-      // Removido orderBy para evitar necessidade de índice composto
       const q = query(
         col, 
         where('mes','==', currentMonth), 
@@ -460,12 +599,15 @@
         if(!id) return;
         if(!confirm('🗑️ Tem certeza que deseja excluir esta transação?')) return;
         try {
+          setLoading(true);
           await deleteDoc(doc(db,'transactions', id));
           toast('🗑️ Transação excluída!');
           loadTransactions(currentMonth, currentYear);
         } catch (error) {
           console.error('Erro ao excluir transação:', error);
           toast('❌ Erro ao excluir transação');
+        } finally {
+          setLoading(false);
         }
       }));
 
@@ -490,12 +632,16 @@
           </div>
         </td></tr>`;
       }
+    } finally {
+      setLoading(false);
     }
   }
 
   // ======= Members & Contributions =======
   async function loadMembersAndContributions(month = currentMonth, year = currentYear){
     try {
+      setLoading(true);
+      
       currentMonth = Number(month); 
       currentYear = Number(year);
       
@@ -560,11 +706,11 @@
             </td>
             <td class="p-4 text-center">
               <input data-id="${c.id}" data-field="rcc" type="number" min="0" step="0.01" value="${Number(c.rcc||0)}" 
-                     class="input-elegant w-28 text-center contribution-input" />
+                     class="input-elegant w-24 text-center contribution-input" />
             </td>
             <td class="p-4 text-center">
               <input data-id="${c.id}" data-field="caixaExtra" type="number" min="0" step="0.01" value="${Number(c.caixaExtra||0)}" 
-                     class="input-elegant w-28 text-center contribution-input" />
+                     class="input-elegant w-24 text-center contribution-input" />
             </td>
             <td class="p-4 text-center">
               <button data-memberid="${c.memberId}" class="delMember btn-danger">
@@ -598,6 +744,7 @@
         if(!memberId) return;
         if(!confirm('👥 Tem certeza que deseja excluir este membro e todas as contribuições dele?')) return;
         try {
+          setLoading(true);
           await deleteDoc(doc(db,'members', memberId));
           const q = query(collection(db,'contributions'), where('memberId','==', memberId));
           const qSnap = await getDocs(q);
@@ -607,6 +754,8 @@
         } catch (error) {
           console.error('Erro ao excluir membro:', error);
           toast('❌ Erro ao excluir membro');
+        } finally {
+          setLoading(false);
         }
       }));
 
@@ -623,6 +772,8 @@
           </div>
         </td></tr>`;
       }
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -642,6 +793,7 @@
   async function addMemberByName(name){
     if(!name || !name.trim()) return toast('❌ Nome inválido');
     try {
+      setLoading(true);
       const memberName = name.trim().toUpperCase();
       await addDoc(collection(db,'members'), { name: memberName, createdAt: serverTimestamp() });
       toast('👥 Membro adicionado com sucesso!');
@@ -650,12 +802,16 @@
     } catch (error) {
       console.error('Erro ao adicionar membro:', error);
       toast('❌ Erro ao adicionar membro');
+    } finally {
+      setLoading(false);
     }
   }
 
   // ======= Contabilidade anual =======
   async function buildAnnualReport(year){
     try {
+      setLoading(true);
+      
       year = Number(year);
       const txSnap = await getDocs(collection(db,'transactions'));
       const txs = txSnap.docs.map(d => d.data()).filter(t => {
@@ -734,7 +890,7 @@
           <td class="p-4 text-right">
             <button class="btn-secondary btnViewMonth" data-month="${r.month}" data-year="${year}">
               <i data-lucide="eye" class="w-4 h-4"></i>
-              Visualizar
+              Ver
             </button>
           </td>
         </tr>
@@ -758,9 +914,23 @@
       if ($('#annualCaixa')) $('#annualCaixa').innerText = totals.totalCaixaExtra.toFixed(2);
       if ($('#annualSaldo')) {
         $('#annualSaldo').innerText = totals.lucroLiquido.toFixed(2);
+        $('#annualSaldo').className = totals.lucroLiquido >= 0 ? 'text-green-600 text-2xl font-bold' : 'text-red-600 text-2xl font-bold';
       }
     } catch (error) {
       console.error('Erro ao gerar relatório anual:', error);
+      toast('❌ Erro ao gerar relatório anual');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  // ======= Loading States =======
+  function setLoading(isLoading) {
+    const body = document.body;
+    if (isLoading) {
+      body.classList.add('loading');
+    } else {
+      body.classList.remove('loading');
     }
   }
 
@@ -768,7 +938,8 @@
   function formatDate(dateStr) {
     try {
       if (!dateStr) return 'Data inválida';
-      const date = new Date(dateStr);
+      // Usa a função corrigida de parseamento
+      const date = parseLocalDate(dateStr);
       return date.toLocaleDateString('pt-BR');
     } catch (error) {
       console.error('Erro ao formatar data:', error);
@@ -799,7 +970,8 @@
     try {
       await ensurePresetMembersExist();
 
-      $$('.nav-item').forEach(btn => btn.addEventListener('click', e => {
+      // Navegação desktop e mobile
+      $$('.nav-item, .mobile-nav-item').forEach(btn => btn.addEventListener('click', e => {
         const target = e.currentTarget.dataset.view;
         setActiveView(target);
       }));
@@ -817,16 +989,22 @@
           const type = $('#txType')?.value || 'entrada';
           const desc = $('#txDesc')?.value?.trim() || '';
           const val = $('#txValue')?.value || '0';
-          const data = $('#txDate')?.value || new Date().toISOString().split('T')[0];
+          const data = $('#txDate')?.value || formatDateForInput(new Date());
+          
           if(!desc || !val || val === '0') return toast('❌ Preencha descrição e valor');
           if(!data) return toast('❌ Selecione uma data');
+          
           await saveTransaction({ type, description: desc, value: val, date: data });
-          txForm.reset();
-          const today = new Date();
-          if ($('#txDate')) $('#txDate').value = today.toISOString().split('T')[0];
+          
+          // Reset form mas mantém a data atual
+          $('#txDesc').value = '';
+          $('#txValue').value = '';
+          $('#txType').value = 'entrada';
+          $('#txDate').value = formatDateForInput(new Date());
         });
       }
 
+      // Event listeners para filtros
       const selectedMonth = $('#selectedMonth');
       if (selectedMonth) {
         selectedMonth.addEventListener('change', () => {
@@ -993,30 +1171,30 @@
           <form id="txForm" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">Tipo</label>
-              <select id="txType" class="input-elegant w-full">
+              <select id="txType" class="input-elegant">
                 <option value="entrada">📈 Entrada</option>
                 <option value="saida">📉 Saída</option>
               </select>
             </div>
             
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Descrição</label>
-              <input id="txDesc" placeholder="Digite a descrição..." class="input-elegant w-full" required />
+              <label class="block text-sm font-medium text-gray-700 mb-2">Descrição *</label>
+              <input id="txDesc" placeholder="Digite a descrição..." class="input-elegant" required />
             </div>
             
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Valor (R$)</label>
-              <input id="txValue" type="number" placeholder="0,00" step="0.01" min="0.01" class="input-elegant w-full" required />
+              <label class="block text-sm font-medium text-gray-700 mb-2">Valor (R$) *</label>
+              <input id="txValue" type="number" placeholder="0,00" step="0.01" min="0.01" class="input-elegant" required />
             </div>
             
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-2">Data</label>
-              <input id="txDate" type="date" class="input-elegant w-full" required />
+              <label class="block text-sm font-medium text-gray-700 mb-2">Data *</label>
+              <input id="txDate" type="date" class="input-elegant" required />
             </div>
 
             <div class="md:col-span-4">
               <button type="submit" class="btn-success w-full">
-                <i data-lucide="save" class="w-4 h-4 mr-2"></i>
+                <i data-lucide="save" class="w-4 h-4"></i>
                 Salvar Transação
               </button>
             </div>
@@ -1024,7 +1202,7 @@
         </div>
 
         <div class="card-elegant p-6">
-          <div class="flex items-center justify-between mb-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
             <h2 class="text-xl font-semibold text-gray-900 flex items-center gap-2">
               <i data-lucide="history" class="w-5 h-5 text-blue-600"></i>
               Histórico de Transações
@@ -1088,7 +1266,7 @@
           <div class="flex gap-4">
             <input id="newMemberName" placeholder="Nome do novo membro..." class="input-elegant flex-1" />
             <button id="btnAddMember" class="btn-primary">
-              <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
+              <i data-lucide="plus" class="w-4 h-4"></i>
               Adicionar
             </button>
           </div>
@@ -1133,7 +1311,7 @@
         </div>
 
         <div class="card-elegant p-6">
-          <div class="flex items-center justify-between mb-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
             <h2 class="text-xl font-semibold text-gray-900 flex items-center gap-2">
               <i data-lucide="list" class="w-5 h-5 text-blue-600"></i>
               Contribuições
@@ -1188,7 +1366,7 @@
         </div>
 
         <div class="card-elegant p-6">
-          <div class="flex items-center gap-4">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4">
             <label class="text-sm font-medium text-gray-700">Ano do relatório:</label>
             <input id="reportYearInput" type="number" min="2023" max="2030" class="input-elegant w-24" />
             <span class="text-lg font-semibold text-gray-900">Relatório de <span id="reportYear">2025</span></span>
@@ -1197,23 +1375,23 @@
 
         <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
           <div class="card-elegant p-4 text-center">
-            <div class="text-green-600 text-2xl font-bold">R$ <span id="annualEntradas">0.00</span></div>
+            <div class="text-green-600 text-xl md:text-2xl font-bold">R$ <span id="annualEntradas">0.00</span></div>
             <div class="text-sm text-gray-600">Entradas</div>
           </div>
           <div class="card-elegant p-4 text-center">
-            <div class="text-blue-600 text-2xl font-bold">R$ <span id="annualRcc">0.00</span></div>
+            <div class="text-blue-600 text-xl md:text-2xl font-bold">R$ <span id="annualRcc">0.00</span></div>
             <div class="text-sm text-gray-600">RCC</div>
           </div>
           <div class="card-elegant p-4 text-center">
-            <div class="text-red-600 text-2xl font-bold">R$ <span id="annualSaidas">0.00</span></div>
+            <div class="text-red-600 text-xl md:text-2xl font-bold">R$ <span id="annualSaidas">0.00</span></div>
             <div class="text-sm text-gray-600">Saídas</div>
           </div>
           <div class="card-elegant p-4 text-center">
-            <div class="text-yellow-600 text-2xl font-bold">R$ <span id="annualCaixa">0.00</span></div>
+            <div class="text-yellow-600 text-xl md:text-2xl font-bold">R$ <span id="annualCaixa">0.00</span></div>
             <div class="text-sm text-gray-600">Caixa Extra</div>
           </div>
-          <div class="card-elegant p-4 text-center">
-            <div class="text-2xl font-bold" id="annualSaldo">R$ 0.00</div>
+          <div class="card-elegant p-4 text-center col-span-2 md:col-span-1">
+            <div class="text-xl md:text-2xl font-bold" id="annualSaldo">R$ 0.00</div>
             <div class="text-sm text-gray-600">Resultado</div>
           </div>
         </div>
@@ -1256,13 +1434,38 @@
   </main>
 </div>
 
+<!-- Mobile Navigation -->
+<nav class="mobile-nav">
+  <div class="mobile-nav-item" data-view="tesouraria">
+    <i data-lucide="wallet" class="w-5 h-5"></i>
+    <span>Tesouraria</span>
+  </div>
+  <div class="mobile-nav-item" data-view="membros">
+    <i data-lucide="users" class="w-5 h-5"></i>
+    <span>Membros</span>
+  </div>
+  <div class="mobile-nav-item" data-view="contabilidade">
+    <i data-lucide="bar-chart-3" class="w-5 h-5"></i>
+    <span>Relatórios</span>
+  </div>
+</nav>
+
 <script>
-  // Initialize form values
+  // Initialize form values with corrected date handling
   document.addEventListener('DOMContentLoaded', () => {
     const today = new Date();
     const currentMonth = today.getMonth() + 1;
     const currentYear = today.getFullYear();
-    const todayStr = today.toISOString().split('T')[0];
+    
+    // Função para formatar data corretamente (mesma do JavaScript module)
+    const formatDateForInput = (date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    };
+    
+    const todayStr = formatDateForInput(today);
     
     const elements = [
       { id: 'txDate', value: todayStr },
