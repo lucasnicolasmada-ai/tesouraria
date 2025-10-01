@@ -6,10 +6,10 @@
   <title>Tesouraria - Grupo de Oração</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
-  
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 
   <style>
     :root {
@@ -220,6 +220,11 @@
       box-shadow: 0 8px 32px rgba(234, 179, 8, 0.3);
     }
 
+    .stat-card-purple {
+      background: linear-gradient(135deg, #9333ea, #7e22ce);
+      box-shadow: 0 8px 32px rgba(147, 51, 234, 0.3);
+    }
+
     .table-elegant {
       background: white;
       border-radius: 16px;
@@ -323,6 +328,40 @@
       color: var(--primary-600);
     }
 
+    /* Modal Styles */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal-content {
+      background: white;
+      border-radius: 16px;
+      max-width: 90vw;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      animation: slideUp 0.3s ease-out;
+    }
+
+    @keyframes slideUp {
+      from { transform: translateY(50px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+
     @media (max-width: 1024px) {
       .sidebar { display: none; }
       .mobile-header { display: block; }
@@ -350,6 +389,10 @@
       
       .card-elegant {
         padding: 16px !important;
+      }
+
+      .modal-content {
+        max-width: 95vw;
       }
     }
 
@@ -388,7 +431,6 @@
       }
     }
 
-    /* Melhorias de acessibilidade e usabilidade */
     .btn-primary:disabled,
     .btn-success:disabled,
     .btn-secondary:disabled {
@@ -402,13 +444,30 @@
       pointer-events: none;
     }
 
-    /* Estilos para campos obrigatórios */
     .input-elegant:required:invalid {
       border-color: var(--danger-300);
     }
 
     .input-elegant:required:valid {
       border-color: var(--success-300);
+    }
+
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      .print-area, .print-area * {
+        visibility: visible;
+      }
+      .print-area {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+      }
+      .no-print {
+        display: none !important;
+      }
     }
   </style>
 </head>
@@ -435,7 +494,6 @@
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
 
-  // PRESET MEMBERS
   const PRESET_MEMBERS = [
     'LUCAS NICOLAS','MILENA','TELMIRA','HENRIQUE','ROBERTA','NOEMI','VERA','MARLY','FLAVIO','ENIO','JESSICA','MARIA LIMA','MARIA DE JESUS','ELISANGELA','GERALDA','LUCAS OLIVEIRA'
   ];
@@ -443,7 +501,6 @@
   const $ = sel => document.querySelector(sel);
   const $$ = sel => Array.from(document.querySelectorAll(sel));
 
-  // ======= Helpers de UI =======
   function setActiveView(viewId){
     $$('.nav-item').forEach(n => n.classList.remove('active'));
     $$('.mobile-nav-item').forEach(n => n.classList.remove('active'));
@@ -461,9 +518,7 @@
     }
   }
 
-  // ======= Correção da função de data =======
   function parseLocalDate(dateString) {
-    // Força a interpretação da data como local, não UTC
     const parts = dateString.split('-');
     return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
   }
@@ -475,7 +530,6 @@
     return `${year}-${month}-${day}`;
   }
 
-  // ======= Firestore helpers =======
   async function ensurePresetMembersExist(){
     try {
       const col = collection(db,'members');
@@ -494,12 +548,10 @@
   let currentMonth = new Date().getMonth() + 1;
   let currentYear = new Date().getFullYear();
 
-  // ======= Transactions =======
   async function saveTransaction({ type, description, value, date }){
     try {
       setLoading(true);
       
-      // Usa a função corrigida de parseamento de data
       const dateObj = parseLocalDate(date);
       const month = dateObj.getMonth() + 1;
       const year = dateObj.getFullYear();
@@ -511,7 +563,7 @@
         value: Number(value) || 0,
         mes: Number(month),
         ano: Number(year),
-        data: date, // Mantém a data original como string
+        data: date,
         createdAt: serverTimestamp()
       });
       
@@ -544,7 +596,6 @@
       const snap = await getDocs(q);
       let rows = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       
-      // Ordenação no cliente por data (YYYY-MM-DD) desc; fallback por createdAt
       rows.sort((a,b) => {
         const ad = a.data || '';
         const bd = b.data || '';
@@ -553,6 +604,15 @@
         const bt = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : 0;
         return bt - at;
       });
+
+      // Buscar contribuições RCC do mês
+      const contribQuery = query(
+        collection(db,'contributions'), 
+        where('month','==', currentMonth), 
+        where('year','==', currentYear)
+      );
+      const contribSnap = await getDocs(contribQuery);
+      const totalRccMes = contribSnap.docs.reduce((sum, doc) => sum + Number(doc.data().rcc || 0), 0);
 
       const tbody = $('#transactionsList');
       if (!tbody) return;
@@ -613,9 +673,10 @@
 
       const entradas = rows.filter(r=> r.type === 'entrada').reduce((s,r)=> s + Number(r.value||0), 0);
       const saidas = rows.filter(r=> r.type === 'saida').reduce((s,r)=> s + Number(r.value||0), 0);
-      const saldo = entradas - saidas;
+      const saldo = entradas + totalRccMes - saidas;
       
       if ($('#totalEntradas')) $('#totalEntradas').innerText = entradas.toFixed(2);
+      if ($('#totalRccMes')) $('#totalRccMes').innerText = totalRccMes.toFixed(2);
       if ($('#totalSaidas')) $('#totalSaidas').innerText = saidas.toFixed(2);
       if ($('#saldoAtual')) {
         $('#saldoAtual').innerText = saldo.toFixed(2);
@@ -637,7 +698,6 @@
     }
   }
 
-  // ======= Members & Contributions =======
   async function loadMembersAndContributions(month = currentMonth, year = currentYear){
     try {
       setLoading(true);
@@ -732,6 +792,8 @@
             await updateDoc(doc(db,'contributions', id), { [field]: value });
             toast('💝 Contribuição atualizada!');
             calculateContributionTotals();
+            // Recarrega transações para atualizar o total RCC
+            loadTransactions(currentMonth, currentYear);
           } catch (error) {
             console.error('Erro ao atualizar contribuição:', error);
             toast('❌ Erro ao atualizar contribuição');
@@ -807,7 +869,274 @@
     }
   }
 
-  // ======= Contabilidade anual =======
+  // Nova função para mostrar detalhes do mês
+  async function showMonthDetails(month, year) {
+    try {
+      setLoading(true);
+      
+      // Buscar transações do mês
+      const txQuery = query(
+        collection(db, 'transactions'),
+        where('mes', '==', Number(month)),
+        where('ano', '==', Number(year))
+      );
+      const txSnap = await getDocs(txQuery);
+      const transactions = txSnap.docs.map(d => d.data()).sort((a, b) => {
+        const ad = a.data || '';
+        const bd = b.data || '';
+        return bd.localeCompare(ad);
+      });
+
+      // Buscar contribuições do mês
+      const contribQuery = query(
+        collection(db, 'contributions'),
+        where('month', '==', Number(month)),
+        where('year', '==', Number(year))
+      );
+      const contribSnap = await getDocs(contribQuery);
+      const contributions = contribSnap.docs.map(d => d.data()).sort((a, b) => 
+        a.memberName.localeCompare(b.memberName)
+      );
+
+      // Calcular totais
+      const entradas = transactions.filter(t => t.type === 'entrada').reduce((s, t) => s + Number(t.value || 0), 0);
+      const saidas = transactions.filter(t => t.type === 'saida').reduce((s, t) => s + Number(t.value || 0), 0);
+      const totalRcc = contributions.reduce((s, c) => s + Number(c.rcc || 0), 0);
+      const totalCaixa = contributions.reduce((s, c) => s + Number(c.caixaExtra || 0), 0);
+      const resultado = entradas + totalRcc - saidas;
+
+      const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+
+      // Criar conteúdo do modal
+      const modalContent = `
+        <div class="p-8">
+          <div class="flex items-center justify-between mb-6">
+            <div>
+              <h2 class="text-2xl font-bold text-gray-900">Detalhes de ${monthNames[month - 1]}/${year}</h2>
+              <p class="text-gray-600">Relatório completo de transações e contribuições</p>
+            </div>
+            <button onclick="closeMonthModal()" class="btn-secondary no-print">
+              <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+          </div>
+
+          <div class="print-area">
+            <!-- Resumo -->
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-8">
+              <div class="card-elegant p-4 text-center">
+                <div class="text-green-600 text-xl font-bold">R$ ${entradas.toFixed(2)}</div>
+                <div class="text-sm text-gray-600">Entradas</div>
+              </div>
+              <div class="card-elegant p-4 text-center">
+                <div class="text-purple-600 text-xl font-bold">R$ ${totalRcc.toFixed(2)}</div>
+                <div class="text-sm text-gray-600">RCC</div>
+              </div>
+              <div class="card-elegant p-4 text-center">
+                <div class="text-red-600 text-xl font-bold">R$ ${saidas.toFixed(2)}</div>
+                <div class="text-sm text-gray-600">Saídas</div>
+              </div>
+              <div class="card-elegant p-4 text-center">
+                <div class="text-yellow-600 text-xl font-bold">R$ ${totalCaixa.toFixed(2)}</div>
+                <div class="text-sm text-gray-600">Caixa Extra</div>
+              </div>
+              <div class="card-elegant p-4 text-center">
+                <div class="text-xl font-bold ${resultado >= 0 ? 'text-green-600' : 'text-red-600'}">R$ ${resultado.toFixed(2)}</div>
+                <div class="text-sm text-gray-600">Resultado</div>
+              </div>
+            </div>
+
+            <!-- Transações -->
+            <div class="mb-8">
+              <h3 class="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <i data-lucide="list" class="w-5 h-5 text-blue-600"></i>
+                Transações
+              </h3>
+              ${transactions.length > 0 ? `
+                <div class="table-elegant">
+                  <table class="w-full">
+                    <thead>
+                      <tr>
+                        <th class="text-left">Data</th>
+                        <th class="text-left">Tipo</th>
+                        <th class="text-left">Descrição</th>
+                        <th class="text-right">Valor</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${transactions.map(t => `
+                        <tr>
+                          <td class="p-3">${formatDate(t.data)}</td>
+                          <td class="p-3">
+                            <span class="inline-flex px-2 py-1 rounded-full text-xs font-medium ${t.type === 'entrada' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
+                              ${t.type === 'entrada' ? 'Entrada' : 'Saída'}
+                            </span>
+                          </td>
+                          <td class="p-3">${t.description || 'Sem descrição'}</td>
+                          <td class="p-3 text-right font-semibold ${t.type === 'entrada' ? 'text-green-600' : 'text-red-600'}">
+                            R$ ${Number(t.value || 0).toFixed(2)}
+                          </td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              ` : '<p class="text-gray-500 text-center py-4">Nenhuma transação registrada</p>'}
+            </div>
+
+            <!-- Contribuições RCC -->
+            <div class="mb-8">
+              <h3 class="text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <i data-lucide="heart" class="w-5 h-5 text-purple-600"></i>
+                Contribuições RCC
+              </h3>
+              ${contributions.filter(c => Number(c.rcc || 0) > 0).length > 0 ? `
+                <div class="table-elegant">
+                  <table class="w-full">
+                    <thead>
+                      <tr>
+                        <th class="text-left">Membro</th>
+                        <th class="text-right">Valor RCC</th>
+                        <th class="text-right">Caixa Extra</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      ${contributions.filter(c => Number(c.rcc || 0) > 0 || Number(c.caixaExtra || 0) > 0).map(c => `
+                        <tr>
+                          <td class="p-3">${c.memberName}</td>
+                          <td class="p-3 text-right font-semibold text-purple-600">R$ ${Number(c.rcc || 0).toFixed(2)}</td>
+                          <td class="p-3 text-right font-semibold text-yellow-600">R$ ${Number(c.caixaExtra || 0).toFixed(2)}</td>
+                        </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
+                </div>
+              ` : '<p class="text-gray-500 text-center py-4">Nenhuma contribuição registrada</p>'}
+            </div>
+          </div>
+
+          <!-- Botões de ação -->
+          <div class="flex gap-4 mt-6 no-print">
+            <button onclick="window.print()" class="btn-primary flex-1">
+              <i data-lucide="printer" class="w-4 h-4"></i>
+              Imprimir
+            </button>
+            <button onclick="downloadPDF()" class="btn-success flex-1">
+              <i data-lucide="download" class="w-4 h-4"></i>
+              Baixar PDF
+            </button>
+          </div>
+        </div>
+      `;
+
+      const modalEl = $('#monthModal');
+      const modalContentEl = $('#monthModalContent');
+      if (modalEl && modalContentEl) {
+        modalContentEl.innerHTML = modalContent;
+        modalEl.classList.add('active');
+        
+        // Armazena dados para PDF
+        window.currentMonthData = { month, year, entradas, saidas, totalRcc, totalCaixa, resultado, transactions, contributions, monthNames };
+        
+        lucide.createIcons();
+      }
+    } catch (error) {
+      console.error('Erro ao carregar detalhes do mês:', error);
+      toast('❌ Erro ao carregar detalhes');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  window.showMonthDetails = showMonthDetails;
+
+  window.closeMonthModal = () => {
+    const modalEl = $('#monthModal');
+    if (modalEl) {
+      modalEl.classList.remove('active');
+    }
+  };
+
+  window.downloadPDF = () => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    const data = window.currentMonthData;
+    if (!data) return;
+
+    const { month, year, entradas, saidas, totalRcc, totalCaixa, resultado, transactions, contributions, monthNames } = data;
+
+    // Cabeçalho
+    doc.setFontSize(18);
+    doc.text(`Relatório - ${monthNames[month - 1]}/${year}`, 14, 20);
+    
+    doc.setFontSize(11);
+    doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')}`, 14, 28);
+
+    // Resumo
+    doc.setFontSize(14);
+    doc.text('Resumo Financeiro', 14, 40);
+    
+    doc.setFontSize(10);
+    let y = 48;
+    doc.text(`Entradas: R$ ${entradas.toFixed(2)}`, 14, y);
+    doc.text(`RCC: R$ ${totalRcc.toFixed(2)}`, 14, y + 6);
+    doc.text(`Saídas: R$ ${saidas.toFixed(2)}`, 14, y + 12);
+    doc.text(`Caixa Extra: R$ ${totalCaixa.toFixed(2)}`, 14, y + 18);
+    doc.setFont(undefined, 'bold');
+    doc.text(`Resultado: R$ ${resultado.toFixed(2)}`, 14, y + 24);
+    doc.setFont(undefined, 'normal');
+
+    // Transações
+    y += 35;
+    doc.setFontSize(12);
+    doc.text('Transações', 14, y);
+    y += 5;
+
+    if (transactions.length > 0) {
+      const txData = transactions.map(t => [
+        formatDate(t.data),
+        t.type === 'entrada' ? 'Entrada' : 'Saída',
+        t.description || 'Sem descrição',
+        `R$ ${Number(t.value || 0).toFixed(2)}`
+      ]);
+
+      doc.autoTable({
+        startY: y,
+        head: [['Data', 'Tipo', 'Descrição', 'Valor']],
+        body: txData,
+        theme: 'grid',
+        styles: { fontSize: 8 }
+      });
+
+      y = doc.lastAutoTable.finalY + 10;
+    }
+
+    // Contribuições
+    const contribWithValues = contributions.filter(c => Number(c.rcc || 0) > 0 || Number(c.caixaExtra || 0) > 0);
+    if (contribWithValues.length > 0) {
+      doc.setFontSize(12);
+      doc.text('Contribuições RCC', 14, y);
+      y += 5;
+
+      const contribData = contribWithValues.map(c => [
+        c.memberName,
+        `R$ ${Number(c.rcc || 0).toFixed(2)}`,
+        `R$ ${Number(c.caixaExtra || 0).toFixed(2)}`
+      ]);
+
+      doc.autoTable({
+        startY: y,
+        head: [['Membro', 'RCC', 'Caixa Extra']],
+        body: contribData,
+        theme: 'grid',
+        styles: { fontSize: 8 }
+      });
+    }
+
+    doc.save(`relatorio-${monthNames[month - 1]}-${year}.pdf`);
+    toast('📄 PDF gerado com sucesso!');
+  };
+
   async function buildAnnualReport(year){
     try {
       setLoading(true);
@@ -874,7 +1203,7 @@
             <div class="font-medium text-green-600">R$ ${r.entradas.toFixed(2)}</div>
           </td>
           <td class="p-4 text-right">
-            <div class="font-medium text-blue-600">R$ ${r.rcc.toFixed(2)}</div>
+            <div class="font-medium text-purple-600">R$ ${r.rcc.toFixed(2)}</div>
           </td>
           <td class="p-4 text-right">
             <div class="font-medium text-red-600">R$ ${r.saidas.toFixed(2)}</div>
@@ -887,7 +1216,7 @@
               R$ ${r.resultado.toFixed(2)}
             </div>
           </td>
-          <td class="p-4 text-right">
+          <td class="p-4 text-center">
             <button class="btn-secondary btnViewMonth" data-month="${r.month}" data-year="${year}">
               <i data-lucide="eye" class="w-4 h-4"></i>
               Ver
@@ -898,14 +1227,10 @@
 
       lucide.createIcons();
 
-      // Botões "Visualizar" de cada mês -> abre Tesouraria filtrada no mês/ano
       $$('.btnViewMonth').forEach(btn => btn.addEventListener('click', () => {
         const m = Number(btn.dataset.month);
         const y = Number(btn.dataset.year);
-        if ($('#selectedMonth')) $('#selectedMonth').value = m;
-        if ($('#selectedYear')) $('#selectedYear').value = y;
-        setActiveView('tesouraria');
-        loadTransactions(m, y);
+        showMonthDetails(m, y);
       }));
 
       if ($('#annualEntradas')) $('#annualEntradas').innerText = totals.totalEntradas.toFixed(2);
@@ -924,7 +1249,6 @@
     }
   }
 
-  // ======= Loading States =======
   function setLoading(isLoading) {
     const body = document.body;
     if (isLoading) {
@@ -934,11 +1258,9 @@
     }
   }
 
-  // ======= Utility Functions =======
   function formatDate(dateStr) {
     try {
       if (!dateStr) return 'Data inválida';
-      // Usa a função corrigida de parseamento
       const date = parseLocalDate(dateStr);
       return date.toLocaleDateString('pt-BR');
     } catch (error) {
@@ -965,12 +1287,10 @@
     }
   }
 
-  // ======= UI Bindings =======
   window.addEventListener('DOMContentLoaded', async () => {
     try {
       await ensurePresetMembersExist();
 
-      // Navegação desktop e mobile
       $$('.nav-item, .mobile-nav-item').forEach(btn => btn.addEventListener('click', e => {
         const target = e.currentTarget.dataset.view;
         setActiveView(target);
@@ -996,7 +1316,6 @@
           
           await saveTransaction({ type, description: desc, value: val, date: data });
           
-          // Reset form mas mantém a data atual
           $('#txDesc').value = '';
           $('#txValue').value = '';
           $('#txType').value = 'entrada';
@@ -1004,7 +1323,6 @@
         });
       }
 
-      // Event listeners para filtros
       const selectedMonth = $('#selectedMonth');
       if (selectedMonth) {
         selectedMonth.addEventListener('change', () => {
@@ -1124,7 +1442,7 @@
           </div>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div class="stat-card stat-card-success">
             <div class="flex items-center justify-between">
               <div>
@@ -1133,6 +1451,18 @@
               </div>
               <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
                 <i data-lucide="trending-up" class="w-6 h-6"></i>
+              </div>
+            </div>
+          </div>
+
+          <div class="stat-card stat-card-purple">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-purple-100 text-sm font-medium">RCC</p>
+                <p class="text-3xl font-bold">R$ <span id="totalRccMes">0.00</span></p>
+              </div>
+              <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                <i data-lucide="heart" class="w-6 h-6"></i>
               </div>
             </div>
           </div>
@@ -1153,7 +1483,8 @@
             <div class="flex items-center justify-between">
               <div>
                 <p class="text-blue-100 text-sm font-medium">Saldo</p>
-                <p class="text-3xl font-bold">R$ <span id="saldoAtual">0.00</span></p>
+                <p class="text-2xl font-bold">R$ <span id="saldoAtual">0.00</span></p>
+                <p class="text-xs text-blue-100 mt-1">Entradas + RCC - Saídas</p>
               </div>
               <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
                 <i data-lucide="piggy-bank" class="w-6 h-6"></i>
@@ -1379,7 +1710,7 @@
             <div class="text-sm text-gray-600">Entradas</div>
           </div>
           <div class="card-elegant p-4 text-center">
-            <div class="text-blue-600 text-xl md:text-2xl font-bold">R$ <span id="annualRcc">0.00</span></div>
+            <div class="text-purple-600 text-xl md:text-2xl font-bold">R$ <span id="annualRcc">0.00</span></div>
             <div class="text-sm text-gray-600">RCC</div>
           </div>
           <div class="card-elegant p-4 text-center">
@@ -1412,7 +1743,7 @@
                   <th class="text-right">Saídas</th>
                   <th class="text-right">Caixa Extra</th>
                   <th class="text-right">Resultado</th>
-                  <th class="text-right">Ação</th>
+                  <th class="text-center">Ação</th>
                 </tr>
               </thead>
               <tbody id="reportTableBody">
@@ -1434,6 +1765,13 @@
   </main>
 </div>
 
+<!-- Modal para detalhes do mês -->
+<div id="monthModal" class="modal-overlay">
+  <div id="monthModalContent" class="modal-content">
+    <!-- Conteúdo será inserido dinamicamente -->
+  </div>
+</div>
+
 <!-- Mobile Navigation -->
 <nav class="mobile-nav">
   <div class="mobile-nav-item" data-view="tesouraria">
@@ -1451,13 +1789,11 @@
 </nav>
 
 <script>
-  // Initialize form values with corrected date handling
   document.addEventListener('DOMContentLoaded', () => {
     const today = new Date();
     const currentMonth = today.getMonth() + 1;
     const currentYear = today.getFullYear();
     
-    // Função para formatar data corretamente (mesma do JavaScript module)
     const formatDateForInput = (date) => {
       const year = date.getFullYear();
       const month = String(date.getMonth() + 1).padStart(2, '0');
